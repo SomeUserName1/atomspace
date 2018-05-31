@@ -481,17 +481,20 @@ std::string Rule::to_string(const std::string& indent) const
 	return ss.str();
 }
 
-Rule Rule::rand_alpha_converted(const Handle& term, const Handle& vardecl)
-const
+Rule Rule::rand_alpha_converted(const Handle& term, const Handle& vardecl) const
 {
+	if(term == Handle::UNDEFINED){
+		return *this;
+	}
 	// Clone the rule
 	Rule result = *this;
 	const HandleSet& term_vars = gen_variables(term, vardecl).varset;
-	const HandleSet& result_vars = result._rule->get_variables().varset;
+	HandleSet result_vars;
 
 	do {
 		// Alpha convert the rule
 		result.set_rule(_rule->alpha_convert());
+		result_vars = result._rule->get_variables().varset;
 	}
 	while(!is_disjoint(term_vars, result_vars));
 
