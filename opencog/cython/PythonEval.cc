@@ -39,7 +39,11 @@
 
 #include "PythonEval.h"
 
-#include "opencog/atomspace_api.h"
+#if COMPILING_WITH_PY2
+    #include "opencog/atomspace2_api.h"
+#else
+    #include "opencog/atomspace3_api.h"
+#endif
 
 using std::string;
 using std::vector;

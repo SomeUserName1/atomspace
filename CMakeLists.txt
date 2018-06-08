@@ -308,75 +308,47 @@ MESSAGE(STATUS "${PROTOBUF_DIR_MESSAGE}")
 # -----------------------------------------------------------------------------
 # Python and Cython
 #
-# NOTE: Python interpreter is needed for runing python unit tests, and for
-# running the FindCython module.
-#
-# Search for Python3 first, and use that, if found. Else use Python2.
+# NOTE: Python interpreter is needed for runing python unit tests,
+# and for running the FindCython module.
+FIND_PACKAGE(BothPython)
+FIND_PACKAGE(Cython)
 
-FIND_PACKAGE(Python3Interp)
-IF (3.4.0 VERSION_LESS ${PYTHON3_VERSION_STRING})
-	SET (HAVE_PY_INTERP 1)
-	SET (PYTHON_VER python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR})
-	MESSAGE(STATUS "Python ${PYTHON3_VERSION_STRING} interpreter found.")
+IF(NOT CYTHON_FOUND) # No Cython
+	MESSAGE(STATUS "Cython executable not found.")
+ELSEIF(NOT PYTHON2INTERP_FOUND AND NOT PYTHON3INTERP_FOUND) # No Python Interp
+	MESSAGE(STATUS "No Python Interpreter found")
+ELSEIF(NOT PYTHON2LIBS_FOUND AND  NOT PYTHON3LIBS_FOUND) # No Python Libs
+	MESSAGE(MESSAGE(STATUS "No Python Libs found"))
+ELSE() # the case of non fitting interp and lib versions is covered in FindBothPython.cmake
+	ADD_DEFINITIONS(-DHAVE_CYTHON)
+	SET(HAVE_CYTHON 1)
 ENDIF()
 
-IF (NOT HAVE_PY_INTERP)
-	FIND_PACKAGE(PythonInterp)
-	IF (2.7.0 VERSION_LESS ${PYTHON_VERSION_STRING})
-		SET (HAVE_PY_INTERP 1)
-		SET (PYTHON_VER python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR})
-		MESSAGE(STATUS "Python ${PYTHON_VERSION_STRING} interpreter found.")
+FOREACH(PY_V 3 2)
+	IF(PYTHON${PY_V}INTERP_FOUND AND PYTHON${PY_V}LIBS_FOUND) # Using Python 2
+		SET(PY_${PY_V}_BINDINGS TRUE)
+		MESSAGE(STATUS "Building Python ${PY_V} bindings")
+	ELSE()
+		MESSAGE(STATUS "Python ${PY_V} not found")
 	ENDIF()
+ENDFOREACH()
+
+
+# ------- Tests for Python -------------
+
+FIND_PROGRAM(NOSETESTS_EXECUTABLE nosetests)
+FIND_PROGRAM(NOSETESTS3_EXECUTABLE nosetests3)
+
+IF (NOSETESTS_EXECUTABLE AND PY_2_BINDINGS)
+	SET(HAVE_NOSETESTS 1)
+	MESSAGE(STATUS "Found nosetests executable ")
 ENDIF()
-
-FIND_PACKAGE(PythonLibs)
-IF (PYTHONLIBS_FOUND AND
-     ((PYTHON3INTERP_FOUND AND 3.4.0 VERSION_LESS ${PYTHONLIBS_VERSION_STRING})
-     OR
-     (2.7.0 VERSION_LESS ${PYTHONLIBS_VERSION_STRING})))
-	SET (HAVE_PY_LIBS 1)
-	MESSAGE(STATUS "Python ${PYTHONLIBS_VERSION_STRING} libraries found.")
-ELSE()
-	MESSAGE(STATUS "Python libraries NOT found.")
-ENDIF()
-
-
-# Cython is used to generate python bindings.
-IF(HAVE_PY_INTERP)
-	FIND_PACKAGE(Cython 0.19.0)
-
-	IF (CYTHON_FOUND AND HAVE_PY_LIBS)
-		# Find python destination dir for python bindings because it may
-		# differ on each operating system.
-		ADD_DEFINITIONS(-DHAVE_CYTHON)
-		SET(HAVE_CYTHON 1)
-
-		# Hack together some reasonable install location.
-		SET(PYTHON_DEST
-			"lib${LIB_DIR_SUFFIX}/${PYTHON_VER}/dist-packages/opencog")
-		MESSAGE(STATUS
-			"Python install dir: ${CMAKE_INSTALL_PREFIX}/${PYTHON_DEST}" )
-
-	ELSE (CYTHON_FOUND AND HAVE_PY_LIBS)
-		IF(NOT CYTHON_FOUND)
-			MESSAGE(STATUS "Cython executable not found.")
-		ENDIF(NOT CYTHON_FOUND)
-	ENDIF (CYTHON_FOUND AND HAVE_PY_LIBS)
-
-	# Nosetests will find and automatically run python tests.
-	IF (PYTHON3INTERP_FOUND)
-		FIND_PROGRAM(NOSETESTS_EXECUTABLE nosetests3)
-	ELSE ()
-		FIND_PROGRAM(NOSETESTS_EXECUTABLE nosetests)
-	ENDIF ()
-	IF (NOSETESTS_EXECUTABLE AND CYTHON_FOUND AND HAVE_PY_LIBS)
-		SET(HAVE_NOSETESTS 1)
-		MESSAGE(STATUS "Using nosetests executable " ${NOSETESTS_EXECUTABLE})
-	ENDIF (NOSETESTS_EXECUTABLE AND CYTHON_FOUND AND HAVE_PY_LIBS)
-ENDIF(HAVE_PY_INTERP)
+IF(NOSETESTS3_EXECUTABLE AND PY_3_BINDINGS)
+	SET(HAVE_NOSETESTS3 1)
+	MESSAGE(STATUS "Found nosetests3 executable ")
+ENDIF ()
 
 # -----------------------------------------------------------------------------
-
 # Glasgow Haskell compiler
 FIND_PACKAGE(Stack)
 IF (STACK_FOUND)
@@ -498,7 +470,8 @@ SET(CMAKE_SKIP_BUILD_RPATH	FALSE)
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 SET(CMAKE_INSTALL_RPATH
 	"${CMAKE_INSTALL_PREFIX}/lib/opencog"
-	"${PYTHON_DEST}")
+	"${PYTHON2_SITE_PACKAGES}" 	# Unsafe: Non trivial for Python 2 and 3: link the py 2 modules only to py 2 Libs
+	"${PYTHON3_SITE_PACKAGES}") # and the py 3 modules only to py 3 Libs; intersections end in nasty behaviour
 
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 

@@ -75,7 +75,7 @@ thought of as an S-expression.
 
 What is a Valuation?
 ====================
-Although a typed hypergraph of Atoms can, in principle, represent any
+Although a typed hyper-graph of Atoms can, in principle, represent any
 kind of data, it is inefficient for many practical uses: the demand for
 immutability and uniqueness implies a significant overhead for indexing
 Atoms, and for thread-safety of the index.  Thus, for rapidly-changing

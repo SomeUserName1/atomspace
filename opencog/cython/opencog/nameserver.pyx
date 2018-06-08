@@ -1,5 +1,5 @@
-from atomspace cimport cNameServer, nameserver, NOTYPE, string, Type
-from nameserver cimport strcmp
+from opencog.atomspace cimport cNameServer, nameserver, NOTYPE, string, Type
+from opencog.nameserver cimport strcmp
 
 
 # Dynamically construct a "types" module.
@@ -45,12 +45,12 @@ cdef generate_type_module():
     global types
     types = {}
     cdef string s
-    # print "Class server has num types=", nameserver().getNumberOfClasses()
+    print("Class server has num types=", nameserver().getNumberOfClasses())
     for i in range(0, nameserver().getNumberOfClasses()):
         s = nameserver().getTypeName(i)
         assert s.size() > 0, "Got blank type name while generating types module"
         types[string(s.c_str()).decode('UTF-8')] = i
-        # print "type ", i, " has name ", s
+        print("type ", i, " has name ", s)
     types["NO_TYPE"] = NOTYPE
     return types
 

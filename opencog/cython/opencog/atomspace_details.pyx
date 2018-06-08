@@ -2,7 +2,8 @@ from libcpp cimport bool
 from libcpp.vector cimport vector
 from cython.operator cimport dereference as deref, preincrement as inc
 
-from atomspace cimport *
+from opencog.atomspace cimport *
+
 
 # @todo use the guide here to separate out into a hierarchy
 # http://wiki.cython.org/PackageHierarchy
@@ -25,7 +26,7 @@ cdef convert_handle_seq_to_python_list(vector[cHandle] handles, AtomSpace atomsp
 cdef AtomSpace_factory(cAtomSpace *to_wrap):
     cdef AtomSpace instance = AtomSpace.__new__(AtomSpace)
     instance.atomspace = to_wrap
-    # print "Debug: atomspace factory={0:x}".format(<long unsigned int>to_wrap)
+    print("Debug: atomspace factory={0:x}".format(<long unsigned int>to_wrap))
     instance.owns_atomspace = False
     return instance
 
@@ -359,7 +360,7 @@ cdef class AtomSpace:
                 [item for sublist in [atom.out for atom in atoms if len(atom.out) > 0] for item in sublist]))
 
     def print_list(self):
-    #    self.atomspace.print_list()
+         #self.atomspace.print_list()
          pass
 
 cdef api object py_atomspace(cAtomSpace *c_atomspace) with gil:

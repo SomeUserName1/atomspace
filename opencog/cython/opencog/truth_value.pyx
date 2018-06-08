@@ -1,6 +1,6 @@
 from cython.operator cimport dereference as deref
+from opencog.atomspace cimport cTruthValue, tv_ptr
 
-from atomspace cimport cTruthValue, tv_ptr
 
 cdef class TruthValue:
     """ The truth value represents the strength and confidence of
@@ -48,7 +48,7 @@ cdef class TruthValue:
         if op == 2: # ==
             return deref(h1._ptr()) == deref(h2._ptr())
 
-        raise ValueError, "TruthValue does not yet support most comparison operators"
+        raise ValueError("TruthValue does not yet support most comparison operators")
 
     cdef cTruthValue* _ptr(self):
         return self.cobj.get()
