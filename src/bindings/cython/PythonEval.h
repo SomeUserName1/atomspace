@@ -50,7 +50,7 @@
 
 #include <opencog/atoms/base/Handle.h>
 #include <opencog/truthvalue/TruthValue.h>
-#include <opencog/eval/GenericEval.h>
+#include <opencog/util/GenericEval.h>
 
 
 namespace opencog {
