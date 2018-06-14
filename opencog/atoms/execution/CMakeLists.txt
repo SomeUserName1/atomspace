@@ -1,42 +1,40 @@
 
 # The atom_types.h file is written to the build directory
-INCLUDE_DIRECTORIES( ${CMAKE_CURRENT_BINARY_DIR})
+
+MACRO(BUILD_EXECUTION PY_VERSION)
+    INCLUDE_DIRECTORIES( ${CMAKE_CURRENT_BINARY_DIR})
+    INCLUDE_DIRECTORIES(${PYTHON${PY_VERSION}_INCLUDE_PATH})
 
 
-
-ADD_LIBRARY (execution
-	Force.cc
-	EvaluationLink.cc
-	ExecutionOutputLink.cc
-	Instantiator.cc
-	MapLink.cc
-	ExecSCM.cc
-)
+    ADD_LIBRARY (execution
+        Force.cc
+        EvaluationLink.cc
+        ExecutionOutputLink.cc
+        Instantiator.cc
+        MapLink.cc
+        ExecSCM.cc
+    )
 
 # Without this, parallel make will race and crap up the generated files.
-ADD_DEPENDENCIES(execution opencog_atom_types)
+    ADD_DEPENDENCIES(execution opencog_atom_types)
 
-TARGET_LINK_LIBRARIES(execution
-	query
-	atomspace
-	atombase
-	clearbox
-	${Boost_SYSTEM_LIBRARY}
-)
+    TARGET_LINK_LIBRARIES(execution
+        query
+        atomspace
+        atombase
+        PythonEval
+        clearbox
+        ${Boost_SYSTEM_LIBRARY}
+        ${PYTHON${PY_VERSION}_LIBRARIES}
+    )
 
-IF (HAVE_GUILE)
-	TARGET_LINK_LIBRARIES(execution smob)
-ENDIF (HAVE_GUILE)
+    IF (HAVE_GUILE)
+        TARGET_LINK_LIBRARIES(execution smob)
+    ENDIF (HAVE_GUILE)
 
-FOREACH(PY_V 2 3)
-	IF (PY_${PY_V}_BINDINGS)
-		INCLUDE_DIRECTORIES(${PYTHON${PY_V}_INCLUDE_PATH})
-		TARGET_LINK_LIBRARIES(execution PythonEval${PY_V})
-		TARGET_LINK_LIBRARIES(execution ${PYTHON${PY_V}_LIBRARIES})
-	ENDIF ()
-ENDFOREACH()
 
 INSTALL (TARGETS execution DESTINATION "lib${LIB_DIR_SUFFIX}/opencog")
+ENDMACRO()
 
 INSTALL (FILES
 	Force.h

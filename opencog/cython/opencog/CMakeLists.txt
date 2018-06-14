@@ -6,15 +6,11 @@
 # https://groups.google.com/forum/#!topic/cython-users/JV1-KvIUeIg
 #
 
-MACRO(BUILD_CYTHON PY_V)
+MACRO(BUILD_CYTHON PY_VERSION)
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing")
 
-   # MESSAGE(STATUS "Setting python RPATH to ${CMAKE_INSTALL_PREFIX}/${PYTHON${PY_V}_SITE_PACKAGES}")
-    #SET(CMAKE_SHARED_LINKER_FLAGS
-     #       "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-rpath -Wl,${CMAKE_INSTALL_PREFIX}/${PYTHON${PY_V}_SITE_PACKAGES}")
-
 	INCLUDE_DIRECTORIES(
-		${PYTHON${PY_V}_INCLUDE_DIRS}
+		${PYTHON${PY_VERSION}_INCLUDE_DIRS}
 		${CMAKE_CURRENT_SOURCE_DIR}
 		${CMAKE_CURRENT_BINARY_DIR}
 		)
@@ -30,15 +26,15 @@ MACRO(BUILD_CYTHON PY_V)
 		# Allow the user to specify dependencies as optional arguments
 		SET(DEPENDS ${DEPENDS} ${ARGN})
 		ADD_CUSTOM_COMMAND(
-            OUTPUT ${name}${PY_V}.cpp
+            OUTPUT ${name}.cpp
             COMMAND ${CYTHON_EXECUTABLE}
             ARGS -f
-				-${PY_V}
+				-${PY_VERSION}
 				-I ${PROJECT_BINARY_DIR}
-				-o ${name}${PY_V}.cpp
+				-o ${name}.cpp
 				--cplus ${CMAKE_CURRENT_SOURCE_DIR}/${name}.pyx
             DEPENDS ${DEPENDS}
-            COMMENT "Cythonizing ${name}.pyx using Python ${PY_V} Libs")
+            COMMENT "Cythonizing ${name}.pyx using Python ${PY_VERSION} Libs")
 	ENDMACRO(CYTHON_ADD_MODULE_PYX)
 
 	# Use this as a guide:
@@ -46,28 +42,28 @@ MACRO(BUILD_CYTHON PY_V)
 
 	###################### logger ##########################################
 	CYTHON_ADD_MODULE_PYX(logger)
-	list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "logger${PY_V}.cpp"
+	list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "logger.cpp"
 		"../../util/Logger.h")
 
-	ADD_LIBRARY(logger_cython${PY_V} SHARED
-		logger${PY_V}.cpp
+	ADD_LIBRARY(logger_cython SHARED
+		logger.cpp
 	)
 
     list(APPEND ADDITIONAL_MAKE_CLEAN_FILES
-            "logger${PY_BUILD_VERSION}.cpp")
+            "logger.cpp")
 
-	TARGET_LINK_LIBRARIES(logger_cython${PY_V}
+	TARGET_LINK_LIBRARIES(logger_cython
 		${COGUTIL_LIBRARY}
-		${PYTHON${PY_V}_LIBRARIES}
+		${PYTHON${PY_VERSION}_LIBRARIES}
 	)
 
-	SET_TARGET_PROPERTIES(logger_cython${PY_V} PROPERTIES
+	SET_TARGET_PROPERTIES(logger_cython PROPERTIES
 		PREFIX ""
 		OUTPUT_NAME logger
-		LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/python${PY_V})
+    )
 
-    INSTALL(TARGETS logger_cython${PY_V}
-            DESTINATION ${PYTHON${PY_V}_SITE_PACKAGES}/opencog)
+    INSTALL(TARGETS logger_cython
+            DESTINATION ${PYTHON${PY_VERSION}_SITE_PACKAGES}/opencog)
 
 
 	###################### atomspace ####################################
@@ -79,26 +75,26 @@ MACRO(BUILD_CYTHON PY_V)
 		"../../atomspace/AtomSpace.h"
 	)
 
-	list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "atomspace${PY_V}.cpp")
-	list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "atomspace${PY_V}_api.h")
+	list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "atomspace.cpp")
+	list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "atomspace_api.h")
 
 	# opencog.atomspace Python bindings
-	ADD_LIBRARY(atomspace_cython${PY_V} SHARED
+	ADD_LIBRARY(atomspace_cython SHARED
 		Cast.cc
-		atomspace${PY_V}.cpp
+		atomspace.cpp
 	)
 
 	# The atomspace_api.h must be generated before PythonEval is compiled, thus
 	# this phony-target is created. Why not add_dependencies between PythonEval
 	# and atomspace_cython? -> Because that results in a cyclic dependency.
-	ADD_CUSTOM_TARGET(py_atomspace_header${PY_V}
-		DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/atomspace${PY_V}.cpp)
+	ADD_CUSTOM_TARGET(py_atomspace_header
+		DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/atomspace.cpp)
 
 	# XXX FIXME Cython should not static link the atom-types, but
 	# but should instead dynamic-load them, as needed.
-	ADD_DEPENDENCIES(atomspace_cython${PY_V} opencog_atom_types)
+	ADD_DEPENDENCIES(atomspace_cython opencog_atom_types)
 
-	TARGET_LINK_LIBRARIES(atomspace_cython${PY_V}
+	TARGET_LINK_LIBRARIES(atomspace_cython
 		${NO_AS_NEEDED}
 		attentionbank
 		execution
@@ -109,15 +105,15 @@ MACRO(BUILD_CYTHON PY_V)
 		truthvalue
 		atomcore
 		${COGUTIL_LIBRARY}
-		${PYTHON${PY_V}_LIBRARIES}
+		${PYTHON${PY_VERSION}_LIBRARIES}
 		${Boost_THREAD_LIBRARY}
 		${Boost_SYSTEM_LIBRARY}
 	)
 
-	SET_TARGET_PROPERTIES(atomspace_cython${PY_V} PROPERTIES
+	SET_TARGET_PROPERTIES(atomspace_cython PROPERTIES
 		PREFIX ""
 		OUTPUT_NAME atomspace
-		LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/python${PY_V})
+    )
 
 	# The cogserver needs the atomspace pxd file to get the Handle, Atom and
 	# AtomSpace defintions during compilation. So this must be installed.
@@ -128,91 +124,91 @@ MACRO(BUILD_CYTHON PY_V)
 		DESTINATION "include/opencog/cython/opencog"
 	)
 
-    INSTALL(TARGETS atomspace_cython${PY_V}
-            DESTINATION ${PYTHON${PY_V}_SITE_PACKAGES}/opencog)
+    INSTALL(TARGETS atomspace_cython
+            DESTINATION ${PYTHON${PY_VERSION}_SITE_PACKAGES}/opencog)
 
 	############################## type constructors #####################
 	CYTHON_ADD_MODULE_PYX(type_constructors
 		"atomspace.pxd" opencog_atom_types )
 
-	list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "type_constructors${PY_V}.cpp")
+	list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "type_constructors.cpp")
 
-	ADD_LIBRARY(type_constructors${PY_V} SHARED
-		type_constructors${PY_V}.cpp
+	ADD_LIBRARY(type_constructors SHARED
+		type_constructors.cpp
 	)
 
-	TARGET_LINK_LIBRARIES(type_constructors${PY_V}
+	TARGET_LINK_LIBRARIES(type_constructors
 		atomspace
-		${PYTHON${PY_V}_LIBRARIES}
+		${PYTHON${PY_VERSION}_LIBRARIES}
 	)
 
-	SET_TARGET_PROPERTIES(type_constructors${PY_V} PROPERTIES
+	SET_TARGET_PROPERTIES(type_constructors PROPERTIES
 		PREFIX ""
 		OUTPUT_NAME type_constructors
-		LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/python${PY_V})
+    )
 
-    INSTALL(TARGETS type_constructors${PY_V}
-            DESTINATION ${PYTHON${PY_V}_SITE_PACKAGES}/opencog)
+    INSTALL(TARGETS type_constructors
+            DESTINATION ${PYTHON${PY_VERSION}_SITE_PACKAGES}/opencog)
 
 
 	############################## utilities #####################
 	CYTHON_ADD_MODULE_PYX(utilities
 		"atomspace.pxd" opencog_atom_types )
 
-	list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "utilities${PY_V}.cpp")
+	list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "utilities.cpp")
 
-	ADD_LIBRARY(utilities_cython${PY_V} SHARED
+	ADD_LIBRARY(utilities_cython SHARED
 		Utilities.cc
-		utilities${PY_V}.cpp
+		utilities.cpp
 	)
 
-	TARGET_LINK_LIBRARIES(utilities_cython${PY_V}
-		PythonEval${PY_V}
+	TARGET_LINK_LIBRARIES(utilities_cython
+		PythonEval
 		clearbox
 		atomspace
-		type_constructors${PY_V}
+		type_constructors
 		${COGUTIL_LIBRARY}
-		${PYTHON${PY_V}_LIBRARIES}
+		${PYTHON${PY_VERSION}_LIBRARIES}
 		${Boost_THREAD_LIBRARY}
 		${Boost_SYSTEM_LIBRARY}
 	)
 
-	SET_TARGET_PROPERTIES(utilities_cython${PY_V} PROPERTIES
+	SET_TARGET_PROPERTIES(utilities_cython PROPERTIES
 		PREFIX ""
 		OUTPUT_NAME utilities
-		LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/python${PY_V})
+    )
 
-    INSTALL(TARGETS utilities_cython${PY_V}
-            DESTINATION ${PYTHON${PY_V}_SITE_PACKAGES}/opencog)
+    INSTALL(TARGETS utilities_cython
+            DESTINATION ${PYTHON${PY_VERSION}_SITE_PACKAGES}/opencog)
 
 	############################## bindlink #####################
 	CYTHON_ADD_MODULE_PYX(bindlink
 		"atomspace.pxd" opencog_atom_types
 		"../../query/BindLinkAPI.h")
 
-	list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "bindlink${PY_V}.cpp")
+	list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "bindlink.cpp")
 
-	ADD_LIBRARY(bindlink_cython${PY_V} SHARED
+	ADD_LIBRARY(bindlink_cython SHARED
 		BindlinkStub.cc
-		bindlink${PY_V}.cpp
+		bindlink.cpp
 	)
 
-	TARGET_LINK_LIBRARIES(bindlink_cython${PY_V}
-		atomspace_cython${PY_V}
+	TARGET_LINK_LIBRARIES(bindlink_cython
+		atomspace_cython
 		query
 		execution
-		${PYTHON${PY_V}_LIBRARIES}
+		${PYTHON${PY_VERSION}_LIBRARIES}
 		${Boost_THREAD_LIBRARY}
 		${Boost_SYSTEM_LIBRARY}
 	)
 
-	SET_TARGET_PROPERTIES(bindlink_cython${PY_V} PROPERTIES
+	SET_TARGET_PROPERTIES(bindlink_cython PROPERTIES
 		PREFIX ""
 		OUTPUT_NAME bindlink
-		LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/python${PY_V})
+    )
 
-    INSTALL(TARGETS bindlink_cython${PY_V}
-            DESTINATION ${PYTHON${PY_V}_SITE_PACKAGES}/opencog)
+    INSTALL(TARGETS bindlink_cython
+            DESTINATION ${PYTHON${PY_VERSION}_SITE_PACKAGES}/opencog)
 
 	IF (HAVE_GUILE)
 		############################## scheme wrapper #####################
@@ -220,42 +216,34 @@ MACRO(BUILD_CYTHON PY_V)
 			"PyScheme.h" "atomspace.pxd" opencog_atom_types
 			"../load-file.h")
 
-		list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "scheme_wrapper${PY_V}.cpp")
+		list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "scheme_wrapper.cpp")
 
-		ADD_LIBRARY(scheme_wrapper${PY_V} SHARED
+		ADD_LIBRARY(scheme_wrapper SHARED
 			PyScheme
-			scheme_wrapper${PY_V}.cpp
+			scheme_wrapper.cpp
 		)
 
-		TARGET_LINK_LIBRARIES(scheme_wrapper${PY_V}
-			atomspace_cython${PY_V}
+		TARGET_LINK_LIBRARIES(scheme_wrapper
+			atomspace_cython
 			query
 			execution
 			smob
-			${PYTHON${PY_V}_LIBRARIES}
+			${PYTHON${PY_VERSION}_LIBRARIES}
 		)
 
-		SET_TARGET_PROPERTIES(scheme_wrapper${PY_V} PROPERTIES
+		SET_TARGET_PROPERTIES(scheme_wrapper PROPERTIES
 			PREFIX ""
 			OUTPUT_NAME scheme_wrapper
-			LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/python${PY_V})
+		)
 
 		INSTALL (TARGETS
-			scheme_wrapper${PY_V}
-			DESTINATION ${PYTHON${PY_V}_SITE_PACKAGES}/opencog)
+			scheme_wrapper
+			DESTINATION ${PYTHON${PY_VERSION}_SITE_PACKAGES}/opencog)
 	ENDIF (HAVE_GUILE)
 
 
 	INSTALL (FILES
 		__init__.py
-		DESTINATION ${PYTHON${PY_V}_SITE_PACKAGES}/opencog)
+		DESTINATION ${PYTHON${PY_VERSION}_SITE_PACKAGES}/opencog)
 ENDMACRO()
-
-
-foreach(PY_V 2 3)
-	if (PY_${PY_V}_BINDINGS)
-		BUILD_CYTHON(${PY_V})
-	endif()
-endforeach()
-
 

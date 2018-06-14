@@ -110,7 +110,8 @@ qrc_*.cpp
 ui_*.h
 Makefile
 *-build-*
-
+src/
+tools/
 # Eclipse
 .cproject
 .project
