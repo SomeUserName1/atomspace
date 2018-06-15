@@ -333,7 +333,6 @@ FOREACH(PY_V 3 2)
 	ENDIF()
 ENDFOREACH()
 
-
 # ------- Tests for Python -------------
 
 FIND_PROGRAM(NOSETESTS_EXECUTABLE nosetests)

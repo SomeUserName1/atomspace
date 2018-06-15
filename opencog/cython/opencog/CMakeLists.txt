@@ -1,13 +1,13 @@
-
-# Need to use -fno-strict-aliasing when compiling cython code, in order
-# to avoid nasty compiler warnings about aliasing.  Cython explicitly
-# performs aliasing, in order to emulate python object inheritance.
-# See, for example,
-# https://groups.google.com/forum/#!topic/cython-users/JV1-KvIUeIg
-#
-
 MACRO(BUILD_CYTHON PY_VERSION)
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing")
+   	# Use this as a guide:
+	# https://github.com/OpenKinect/libfreenect/blob/master/wrappers/python/CMakeLists.txt
+    # Need to use -fno-strict-aliasing when compiling cython code, in order
+    # to avoid nasty compiler warnings about aliasing.  Cython explicitly
+    # performs aliasing, in order to emulate python object inheritance.
+    # See, for example,
+    # https://groups.google.com/forum/#!topic/cython-users/JV1-KvIUeIg
+
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing")
 
 	INCLUDE_DIRECTORIES(
 		${PYTHON${PY_VERSION}_INCLUDE_DIRS}
@@ -36,9 +36,6 @@ MACRO(BUILD_CYTHON PY_VERSION)
             DEPENDS ${DEPENDS}
             COMMENT "Cythonizing ${name}.pyx using Python ${PY_VERSION} Libs")
 	ENDMACRO(CYTHON_ADD_MODULE_PYX)
-
-	# Use this as a guide:
-	# https://github.com/OpenKinect/libfreenect/blob/master/wrappers/python/CMakeLists.txt
 
 	###################### logger ##########################################
 	CYTHON_ADD_MODULE_PYX(logger)
@@ -247,3 +244,8 @@ MACRO(BUILD_CYTHON PY_VERSION)
 		DESTINATION ${PYTHON${PY_VERSION}_SITE_PACKAGES}/opencog)
 ENDMACRO()
 
+IF (PY_2_BINDINGS)
+    BUILD_CYTHON(2)
+ELSEIF (PY_3_BINDINGS)
+    BUILD_CYTHON(3)
+ENDIF
