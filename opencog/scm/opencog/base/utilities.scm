@@ -77,40 +77,52 @@
 (define-public (etv pos-count total-count) (cog-new-etv pos-count total-count))
 
 ; Fetch the mean, confidence and count of a TV.
-(define-public (tv-mean tv)
+(define-public (tv-mean TV)
 "
+  Warning: this function is obsolete, use cog-tv-mean instead
+
   Return the floating-point mean (strength) of a TruthValue.
+  Deprecated; use cog-tv-mean instead.
 "
-	(assoc-ref (cog-tv->alist tv) 'mean))
+	(cog-tv-mean TV)
+)
 
-(define-public (tv-conf tv)
+(define-public (tv-conf TV)
 "
+  Warning: this function is obsolete, use cog-tv-confidence instead
+
   Return the floating-point confidence of a TruthValue.
+  Deprecated; use cog-tv-confidence instead.
 "
-	(assoc-ref (cog-tv->alist tv) 'confidence))
+	(cog-tv-confidence TV)
+)
 
-(define-public (tv-non-null-conf? tv)
+(define-public (tv-non-null-conf? TV)
 "
-  Return #t if the confidence of tv is non null positive, #f otherwise.
+  Return #t if the confidence of tv is positive, #f otherwise.
+  Deprecated. Just say (< 0 (cog-tv-confidence TV)) instead.
 "
-	(< 0 (tv-conf tv)))
+	(< 0 (cog-tv-confidence TV))
+)
 
 ;
 ; Simple truth values won't have a count. Its faster to just check
 ; for #f than to call (cog-ctv? tv)
-(define-public (tv-count tv)
+(define-public (tv-count TV)
 "
+  Warning: this function is obsolete, use cog-tv-count instead
+
   Return the floating-point count of a CountTruthValue.
+  Deprecated; use cog-tv-count instead.
 "
-	(define cnt (assoc-ref (cog-tv->alist tv) 'count))
-	(if (eq? cnt #f) 0 cnt)
+	(cog-tv-count TV)
 )
 
-(define-public (tv-positive-count tv)
+(define-public (tv-positive-count TV)
 "
   Return the floating-point positive count of a EvidenceCountTruthValue.
 "
-	(define pos-cnt (assoc-ref (cog-tv->alist tv) 'positive-count))
+	(define pos-cnt (assoc-ref (cog-tv->alist TV) 'positive-count))
 	(if (eq? pos-cnt #f) 0 pos-cnt)
 )
 
@@ -1067,14 +1079,32 @@
 
 ; ---------------------------------------------------------------------
 
+(define rand-state-fluid (make-fluid))
 (define-public (random-string str-length)
 "
- random-string -- Returns a random string of length 'str-length'.
+  random-string -- Returns a random string of length 'str-length'.
+
+  This is now thread-safe.  I think. Its missing a unit test,
+  and tends to not actually be random when hit hard from multiple
+  threads. Ick.  This and everything that touches this needs
+  review/redesign.
 "
 	(define alphanumeric "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-	(define str "")
+	(define alphlen (string-length alphanumeric))
+	(define str (format #f "~A-" (get-internal-real-time)))
+
+	; Attempt to make this thread-safe by giving each thread it's own
+	; random state.
+	(if (not (fluid-ref rand-state-fluid))
+		(fluid-set! rand-state-fluid
+			(seed->random-state (get-internal-real-time))))
+
+	; XXX FIXME -- this is a stunningly slow and sloppy random-string
+	; generator. But whatever.  I don't have the hours in the day to fix
+	; everything.
 	(while (> str-length 0)
-		(set! str (string-append str (string (string-ref alphanumeric (random (string-length alphanumeric))))))
+		(set! str (string-append str (string (string-ref alphanumeric
+			(random alphlen (fluid-ref rand-state-fluid))))))
 		(set! str-length (- str-length 1))
 	)
 	str
@@ -1084,9 +1114,13 @@
 
 (define-public (random-node-name node-type random-length prefix)
 "
-  Creates a random node name of type `node-type`, with name `prefix` followed by
-  a random string of length `random-length`. It Makes sure the resulting node
-  did not previously exist in the current atomspace.
+  random-node-name TYPE LENGTH PREFIX - create a unique node.
+
+  Create a random string, consisting of `PREFIX` followed by
+  a random string of length `LENGTH`.  The string is checked, so
+  that no node of type `TYPE` exists in the atomspace at the time
+  of this call. Thus, the name is almost unique -- there still is
+  a tiny window in which a race can occur.
 "
 	(define (check-name? node-name node-type)
 	"
@@ -1109,13 +1143,21 @@
 	node-name
 )
 
-;; TODO rename to random-variable-name
 (define-public (choose-var-name)
 "
- Creates a new random VariableNode.
+ DEPRECATED - use uniquely-named-variable instead.
 "
-    (random-node-name 'VariableNode 36 "$")
+    (random-node-name 'VariableNode 24 "$")
 )
+
+(define-public (uniquely-named-variable)
+"
+ uniquely-named-variable -- Creates a new uniquely-named VariableNode.
+"
+    (Variable (random-node-name 'VariableNode 24 "$"))
+)
+
+
 
 ; -----------------------------------------------------------------------
 

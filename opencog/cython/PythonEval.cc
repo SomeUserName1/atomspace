@@ -296,11 +296,9 @@ void opencog::global_python_initialize()
 
     logger().info("[global_python_initialize] Start");
 
-    // Throw an exception if this is called more than once.
+    // Don't initialize twice
     if (already_initialized) {
         return;
-        throw opencog::RuntimeException(TRACE_INFO,
-            "Python initializer global_python_init() called twice.");
     }
 
     // Remember this initialization.
@@ -518,8 +516,14 @@ void PythonEval::initialize_python_objects_and_imports(void)
     // Add ATOMSPACE to __main__ module.
     PyObject* pyRootDictionary = PyModule_GetDict(_pyRootModule);
     PyObject* pyAtomSpaceObject = this->atomspace_py_object(_atomspace);
-    PyDict_SetItemString(pyRootDictionary, "ATOMSPACE", pyAtomSpaceObject);
-    Py_DECREF(pyAtomSpaceObject);
+
+    // Sometimes the atomspace cannot be found, viz null pointer.
+    // I don't know why.
+    if (pyAtomSpaceObject)
+    {
+        PyDict_SetItemString(pyRootDictionary, "ATOMSPACE", pyAtomSpaceObject);
+        Py_DECREF(pyAtomSpaceObject);
+    }
 
     // PyModule_GetDict returns a borrowed reference, so don't do this:
     // Py_DECREF(pyRootDictionary);

@@ -238,15 +238,15 @@ FIND_LIBRARY(GMP_LIBRARY gmp)
 FIND_PATH(GMP_INCLUDE_DIR gmp.h)
 
 # Gnu Guile scheme interpreter
-# Version 2.0.9 is needed for mrs io ports, compilation, etc.
-FIND_PACKAGE(Guile 2.0.9)
+# Version 2.2.2 is needed for mrs io ports, compilation, atomics, nlp
+FIND_PACKAGE(Guile 2.2.2)
 IF (GUILE_FOUND AND GMP_LIBRARY AND GMP_INCLUDE_DIR)
 	ADD_DEFINITIONS(-DHAVE_GUILE)
 	SET(HAVE_GUILE 1)
 	INCLUDE_DIRECTORIES(${GUILE_INCLUDE_DIR})
 ELSE (GUILE_FOUND AND GMP_LIBRARY AND GMP_INCLUDE_DIR)
 	SET(GUILE_DIR_MESSAGE "Guile was not found; the scheme shell will not be built.\nTo over-ride, make sure GUILE_LIBRARIES and GUILE_INCLUDE_DIRS are set.")
-	MESSAGE(STATUS "${GUILE_DIR_MESSAGE}")
+	MESSAGE(FATAL_ERROR "${GUILE_DIR_MESSAGE}")
 ENDIF (GUILE_FOUND AND GMP_LIBRARY AND GMP_INCLUDE_DIR)
 
 # Hypertable library, for atomspace persistence
@@ -269,9 +269,6 @@ ELSE (HYPERTABLE_FOUND)
 	MESSAGE(STATUS "Hypertable not found; the experimental distributed persistence DB needs it.")
 
 ENDIF (HYPERTABLE_FOUND)
-
-# At this time, there is no reason to build with memcached for
-# FIND_PACKAGE(LibMemCached)
 
 # Google Protobuf library
 # The protocol buffer compiler is needed for ZMQ-based persistence.
@@ -338,6 +335,7 @@ ENDFOREACH()
 FIND_PROGRAM(NOSETESTS_EXECUTABLE nosetests)
 FIND_PROGRAM(NOSETESTS3_EXECUTABLE nosetests3)
 
+<<<<<<< HEAD
 IF (NOSETESTS_EXECUTABLE AND PY_2_BINDINGS)
 	SET(HAVE_NOSETESTS 1)
 	MESSAGE(STATUS "Found nosetests executable ")
@@ -346,6 +344,7 @@ IF(NOSETESTS3_EXECUTABLE AND PY_3_BINDINGS)
 	SET(HAVE_NOSETESTS3 1)
 	MESSAGE(STATUS "Found nosetests3 executable ")
 ENDIF ()
+>>>>>> upstream/master
 
 # -----------------------------------------------------------------------------
 # Glasgow Haskell compiler
@@ -420,12 +419,6 @@ ENDIF(HAVE_COGUTIL)
 IF(HAVE_PROTOBUF AND HAVE_ZMQLIB)
 	SET(HAVE_ZMQ 1)
 ENDIF(HAVE_PROTOBUF AND HAVE_ZMQLIB)
-
-# At this time, there is no reason to build with memcached for
-# any "normal" use, so just stub it out.
-# IF (LIBMEMCACHED_FOUND)
-#	ADD_DEFINITIONS(-DHAVE_LIBMEMCACHED)
-# ENDIF (LIBMEMCACHED_FOUND)
 
 # ===================================================================
 # global includes
@@ -617,7 +610,7 @@ SET(CPACK_SOURCE_IGNORE_FILES
 
 SET(CPACK_PACKAGING_INSTALL_PREFIX "/usr/local")
 SET(CPACK_DEBIAN_PACKAGE_DEPENDS
-    "guile-2.0 (>= 2.0.9), python (>= 2.7.5), libzmq3 (>= 4.0.4), libboost-date-time1.54.0, libboost-filesystem1.54.0, libboost-program-options1.54.0, libboost-regex1.54.0, libboost-serialization1.54.0, libboost-system1.54.0, libboost-thread1.54.0, libssl1.0.0 (>= 1.0.1), libatlas-base-dev, libpq-dev, cogutil (>= 2.0.2)"
+    "guile-2.2 (>= 2.2.2), python (>= 2.7.5), libzmq3 (>= 4.0.4), libboost-date-time1.54.0, libboost-filesystem1.54.0, libboost-program-options1.54.0, libboost-regex1.54.0, libboost-serialization1.54.0, libboost-system1.54.0, libboost-thread1.54.0, libssl1.0.0 (>= 1.0.1), libatlas-base-dev, libpq-dev, cogutil (>= 2.0.2)"
 )
 
 SET(CPACK_PACKAGE_INSTALL_DIRECTORY "CMake ${CMake_VERSION_MAJOR}.${CMake_VERSION_MINOR}")

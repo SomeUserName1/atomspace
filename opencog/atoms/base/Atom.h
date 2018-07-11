@@ -33,6 +33,7 @@
 #include <string>
 #include <unordered_set>
 
+#include <opencog/util/empty_string.h>
 #include <opencog/util/sigslot.h>
 #include <opencog/atoms/base/Handle.h>
 #include <opencog/atoms/proto/ProtoAtom.h>
@@ -311,7 +312,7 @@ public:
         {
             for (const WinkPtr& w : bucket.second)
             {
-                Handle h(w.lock());
+                Handle h(std::static_pointer_cast<Atom>(w.lock()));
                 if (h) { *result = h; result ++; }
             }
         }
@@ -330,7 +331,7 @@ public:
         IncomingSet vh(getIncomingSet());
 
         for (const LinkPtr& lp : vh)
-            if ((data->*cb)(Handle(lp))) return true;
+            if ((data->*cb)(Handle(std::static_pointer_cast<Atom>(lp)))) return true;
         return false;
     }
 
@@ -353,7 +354,7 @@ public:
 
         for (const WinkPtr& w : bucket->second)
         {
-            Handle h(w.lock());
+            Handle h(std::static_pointer_cast<Atom>(w.lock()));
             if (h) { *result = h; result ++; }
         }
         return result;
@@ -415,8 +416,8 @@ static inline Handle HandleCast(const ProtoAtomPtr& pa)
 // The reason indent is not an optional argument with default is
 // because gdb doesn't support that, see
 // http://stackoverflow.com/questions/16734783 for more explanation.
-std::string oc_to_string(const IncomingSet& iset, const std::string& indent);
-std::string oc_to_string(const IncomingSet& iset);
+std::string oc_to_string(const IncomingSet& iset,
+                         const std::string& indent=empty_string);
 
 /** @}*/
 } // namespace opencog

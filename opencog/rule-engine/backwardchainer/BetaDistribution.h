@@ -20,11 +20,12 @@
  * Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef OPENCOG_BETADISTRIBUTION_H_
-#define OPENCOG_BETADISTRIBUTION_H_
+#ifndef _OPENCOG_BETADISTRIBUTION_H_
+#define _OPENCOG_BETADISTRIBUTION_H_
 
 #include <boost/math/distributions/beta.hpp>
 
+#include <opencog/util/empty_string.h>
 #include <opencog/truthvalue/TruthValue.h>
 
 namespace opencog
@@ -103,9 +104,9 @@ TruthValuePtr mk_stv(double mean, double variance,
 // The reason indent is not an optional argument with default is
 // because gdb doesn't support that, see
 // http://stackoverflow.com/questions/16734783 for more explanation.
-std::string oc_to_string(const BetaDistribution& bd, const std::string& indent);
-std::string oc_to_string(const BetaDistribution& bd);
+std::string oc_to_string(const BetaDistribution& bd,
+                         const std::string& indent=empty_string);
 
 } // namespace opencog
 
-#endif /* OPENCOG_ACTIONSELECTION_H_ */
+#endif /* _OPENCOG_BETADISTRIBUTION_H_ */

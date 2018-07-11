@@ -46,7 +46,7 @@
   'left-release COL - Remove pairs (*, COL) from the atomspace. This
   intended to be used to minimize RAM usage when working with a large
   database.  The atoms are NOT removed from the database; only from
-  the atospace. If the atoms are in use (have a non-empty incoming
+  the atomspace. If the atoms are in use (have a non-empty incoming
   set) they are not removed.
 
   'right-release ROW - same but for pairs in ROW.
@@ -58,7 +58,7 @@
 			(pair-type (LLOBJ 'pair-type))
 		)
 
-		; Retreive all atoms of TYPE from the database
+		; Retrieve all atoms of TYPE from the database
 		(define (get-atoms TYPE)
 			(load-atoms-of-type TYPE)
 			(cog-get-atoms  TYPE))
@@ -76,7 +76,8 @@
 			r-basis)
 
 		; Fetch the incoming set for ITEM, but only if we haven't
-		; already done so.
+		; already done so. XXX FIXME: this only works if ITEM is
+		; immediately under 'pair-type. If its deeper, its broken.
 		(define (get-incoming ITEM)
 			(if (not (member ITEM cache-incoming))
 				(begin
@@ -96,9 +97,9 @@
 			(stars-obj 'right-stars ITEM))
 
 		;-------------------------------------------
-		; Release (extract) row or column. No spcific check is made
+		; Release (extract) row or column. No specific check is made
 		; to really be sure that this is a part of the matrix; it's
-		; assumed that the pair-type is enough to acheive this.
+		; assumed that the pair-type is enough to achieve this.
 		(define (release-extract ITEM)
 			(for-each cog-extract (cog-incoming-by-type ITEM pair-type)))
 
@@ -123,6 +124,7 @@
 				((right-stars)    (apply get-right-stars args))
 				((left-release)   (apply release-extract args))
 				((right-release)  (apply release-extract args))
+				((clobber)        (stars-obj 'clobber))
 				((provides)       (apply provides args))
 				(else             (apply LLOBJ (cons message args))))
 		)))

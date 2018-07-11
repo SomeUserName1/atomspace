@@ -33,212 +33,179 @@ MACRO(BUILD_CYTHON PY_VERSION)
 				-I ${PROJECT_BINARY_DIR}
 				-o ${name}.cpp
 				--cplus ${CMAKE_CURRENT_SOURCE_DIR}/${name}.pyx
-            DEPENDS ${DEPENDS}
-            COMMENT "Cythonizing ${name}.pyx using Python ${PY_VERSION} Libs")
-	ENDMACRO(CYTHON_ADD_MODULE_PYX)
+		DEPENDS ${DEPENDS}
+		COMMENT "Cythonizing ${name}.pyx")
+ENDMACRO(CYTHON_ADD_MODULE_PYX)
 
-	###################### logger ##########################################
-	CYTHON_ADD_MODULE_PYX(logger)
-	list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "logger.cpp"
-		"../../util/Logger.h")
+# Use this as a guide:
+# https://github.com/OpenKinect/libfreenect/blob/master/wrappers/python/CMakeLists.txt
 
-	ADD_LIBRARY(logger_cython SHARED
-		logger.cpp
-	)
+###################### logger ##########################################
+CYTHON_ADD_MODULE_PYX(logger)
+list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "logger.cpp"
+	"../../util/Logger.h")
 
-    list(APPEND ADDITIONAL_MAKE_CLEAN_FILES
-            "logger.cpp")
+ADD_LIBRARY(logger_cython
+	logger.cpp
+)
 
-	TARGET_LINK_LIBRARIES(logger_cython
-		${COGUTIL_LIBRARY}
-		${PYTHON${PY_VERSION}_LIBRARIES}
-	)
+TARGET_LINK_LIBRARIES(logger_cython
+	${COGUTIL_LIBRARY}
+	${PYTHON_LIBRARIES}
+)
 
-	SET_TARGET_PROPERTIES(logger_cython PROPERTIES
-		PREFIX ""
-		OUTPUT_NAME logger
-    )
+SET_TARGET_PROPERTIES(logger_cython PROPERTIES
+	PREFIX ""
+	OUTPUT_NAME logger)
 
-    INSTALL(TARGETS logger_cython
-            DESTINATION ${PYTHON${PY_VERSION}_SITE_PACKAGES}/opencog)
+###################### atomspace ####################################
+CYTHON_ADD_MODULE_PYX(atomspace
+	"atom.pyx" "nameserver.pyx" "truth_value.pyx"
+	"atomspace_details.pyx" "protoatom.pyx" opencog_atom_types
+	"../../truthvalue/TruthValue.h" "../../truthvalue/SimpleTruthValue.h"
+	"../../atoms/proto/NameServer.h" "../../atoms/base/Handle.h"
+	"../../atomspace/AtomSpace.h"
+)
 
+# list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "atomspace.cpp")
+list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "atomspace_api.h")
 
-	###################### atomspace ####################################
-	CYTHON_ADD_MODULE_PYX(atomspace
-		"atom.pyx" "nameserver.pyx" "truth_value.pyx"
-		"atomspace_details.pyx" opencog_atom_types
-		"../../truthvalue/TruthValue.h" "../../truthvalue/SimpleTruthValue.h"
-		"../../atoms/proto/NameServer.h" "../../atoms/base/Handle.h"
-		"../../atomspace/AtomSpace.h"
-	)
+# opencog.atomspace Python bindings
+ADD_LIBRARY(atomspace_cython
+	Cast.cc
+	atomspace.cpp
+)
 
-	list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "atomspace.cpp")
-	list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "atomspace_api.h")
+# The atomspace_api.h must be generated before PythonEval is compiled, thus
+# this phony-target is created. Why not add_dependencies between PythonEval
+# and atomspace_cython? -> Because that results in a cyclic dependency.
+ADD_CUSTOM_TARGET(py_atomspace_header
+	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/atomspace.cpp)
 
-	# opencog.atomspace Python bindings
-	ADD_LIBRARY(atomspace_cython SHARED
-		Cast.cc
-		atomspace.cpp
-	)
+# XXX FIXME Cython should not static link the atom-types, but
+# but should instead dynamic-load them, as needed.
+ADD_DEPENDENCIES(atomspace_cython opencog_atom_types)
 
-	# The atomspace_api.h must be generated before PythonEval is compiled, thus
-	# this phony-target is created. Why not add_dependencies between PythonEval
-	# and atomspace_cython? -> Because that results in a cyclic dependency.
-	ADD_CUSTOM_TARGET(py_atomspace_header
-		DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/atomspace.cpp)
+TARGET_LINK_LIBRARIES(atomspace_cython
+	${NO_AS_NEEDED}
+	attentionbank
+	execution
+	atomspace
+	atomutils
+	clearbox
+	atomspaceutils
+	truthvalue
+	atomcore
+	atomspace
+	${COGUTIL_LIBRARY}
+	${PYTHON_LIBRARIES}
+	${Boost_THREAD_LIBRARY}
+	${Boost_SYSTEM_LIBRARY}
+)
 
-	# XXX FIXME Cython should not static link the atom-types, but
-	# but should instead dynamic-load them, as needed.
-	ADD_DEPENDENCIES(atomspace_cython opencog_atom_types)
+SET_TARGET_PROPERTIES(atomspace_cython PROPERTIES
+	PREFIX ""
+	OUTPUT_NAME atomspace)
 
-	TARGET_LINK_LIBRARIES(atomspace_cython
-		${NO_AS_NEEDED}
-		attentionbank
-		execution
-		atomspace
-		atomutils
-		clearbox
-		atomspaceutils
-		truthvalue
-		atomcore
-		${COGUTIL_LIBRARY}
-		${PYTHON${PY_VERSION}_LIBRARIES}
-		${Boost_THREAD_LIBRARY}
-		${Boost_SYSTEM_LIBRARY}
-	)
+# The cogserver needs the atomspace pxd file to get the Handle, Atom and
+# AtomSpace defintions during compilation. So this must be installed.
+INSTALL (FILES
+	__init__.py
+	atomspace.pxd
+	Cast.h
+	DESTINATION "include/opencog/cython/opencog"
+)
 
-	SET_TARGET_PROPERTIES(atomspace_cython PROPERTIES
-		PREFIX ""
-		OUTPUT_NAME atomspace
-    )
+############################## type constructors #####################
+CYTHON_ADD_MODULE_PYX(type_constructors
+	"atomspace.pxd" opencog_atom_types )
 
-	# The cogserver needs the atomspace pxd file to get the Handle, Atom and
-	# AtomSpace defintions during compilation. So this must be installed.
-	INSTALL (FILES
-		__init__.py
-		atomspace.pxd
-		Cast.h
-		DESTINATION "include/opencog/cython/opencog"
-	)
+list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "type_constructors.cpp")
 
-    INSTALL(TARGETS atomspace_cython
-            DESTINATION ${PYTHON${PY_VERSION}_SITE_PACKAGES}/opencog)
+ADD_LIBRARY(type_constructors
+	type_constructors.cpp
+)
 
-	############################## type constructors #####################
-	CYTHON_ADD_MODULE_PYX(type_constructors
-		"atomspace.pxd" opencog_atom_types )
+TARGET_LINK_LIBRARIES(type_constructors
+	atomspace
+	${PYTHON_LIBRARIES}
+)
 
-	list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "type_constructors.cpp")
-
-	ADD_LIBRARY(type_constructors SHARED
-		type_constructors.cpp
-	)
-
-	TARGET_LINK_LIBRARIES(type_constructors
-		atomspace
-		${PYTHON${PY_VERSION}_LIBRARIES}
-	)
-
-	SET_TARGET_PROPERTIES(type_constructors PROPERTIES
-		PREFIX ""
-		OUTPUT_NAME type_constructors
-    )
-
-    INSTALL(TARGETS type_constructors
-            DESTINATION ${PYTHON${PY_VERSION}_SITE_PACKAGES}/opencog)
+SET_TARGET_PROPERTIES(type_constructors PROPERTIES
+	PREFIX ""
+	OUTPUT_NAME type_constructors)
 
 
-	############################## utilities #####################
-	CYTHON_ADD_MODULE_PYX(utilities
-		"atomspace.pxd" opencog_atom_types )
+############################## utilities #####################
+CYTHON_ADD_MODULE_PYX(utilities
+	"atomspace.pxd" opencog_atom_types )
 
-	list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "utilities.cpp")
+list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "utilities.cpp")
 
-	ADD_LIBRARY(utilities_cython SHARED
-		Utilities.cc
-		utilities.cpp
-	)
+ADD_LIBRARY(utilities_cython
+	Utilities.cc
+	utilities.cpp
+)
 
-	TARGET_LINK_LIBRARIES(utilities_cython
-		PythonEval
-		clearbox
-		atomspace
-		type_constructors
-		${COGUTIL_LIBRARY}
-		${PYTHON${PY_VERSION}_LIBRARIES}
-		${Boost_THREAD_LIBRARY}
-		${Boost_SYSTEM_LIBRARY}
-	)
+TARGET_LINK_LIBRARIES(utilities_cython
+	PythonEval
+	clearbox
+	atomspace
+	type_constructors
+	${COGUTIL_LIBRARY}
+	${PYTHON_LIBRARIES}
+	${Boost_THREAD_LIBRARY}
+	${Boost_SYSTEM_LIBRARY}
+)
 
-	SET_TARGET_PROPERTIES(utilities_cython PROPERTIES
-		PREFIX ""
-		OUTPUT_NAME utilities
-    )
+SET_TARGET_PROPERTIES(utilities_cython PROPERTIES
+	PREFIX ""
+	OUTPUT_NAME utilities)
 
-    INSTALL(TARGETS utilities_cython
-            DESTINATION ${PYTHON${PY_VERSION}_SITE_PACKAGES}/opencog)
+############################## bindlink #####################
+CYTHON_ADD_MODULE_PYX(bindlink
+	"atomspace.pxd" opencog_atom_types
+	"../../query/BindLinkAPI.h")
 
-	############################## bindlink #####################
-	CYTHON_ADD_MODULE_PYX(bindlink
-		"atomspace.pxd" opencog_atom_types
-		"../../query/BindLinkAPI.h")
+list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "bindlink.cpp")
 
-	list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "bindlink.cpp")
+ADD_LIBRARY(bindlink_cython
+	BindlinkStub.cc
+	bindlink.cpp
+)
 
-	ADD_LIBRARY(bindlink_cython SHARED
-		BindlinkStub.cc
-		bindlink.cpp
-	)
+TARGET_LINK_LIBRARIES(bindlink_cython
+	atomspace_cython
+	query
+	execution
+	${PYTHON_LIBRARIES}
+	${Boost_THREAD_LIBRARY}
+	${Boost_SYSTEM_LIBRARY}
+)
 
-	TARGET_LINK_LIBRARIES(bindlink_cython
-		atomspace_cython
-		query
-		execution
-		${PYTHON${PY_VERSION}_LIBRARIES}
-		${Boost_THREAD_LIBRARY}
-		${Boost_SYSTEM_LIBRARY}
-	)
+SET_TARGET_PROPERTIES(bindlink_cython PROPERTIES
+	PREFIX ""
+	OUTPUT_NAME bindlink)
 
-	SET_TARGET_PROPERTIES(bindlink_cython PROPERTIES
-		PREFIX ""
-		OUTPUT_NAME bindlink
-    )
+INSTALL (TARGETS
+	atomspace_cython
+	bindlink_cython
+	logger_cython
+	type_constructors
+	utilities_cython
+	DESTINATION "${PYTHON_DEST}")
 
-    INSTALL(TARGETS bindlink_cython
-            DESTINATION ${PYTHON${PY_VERSION}_SITE_PACKAGES}/opencog)
+IF (HAVE_GUILE)
+	############################## scheme wrapper #####################
+	CYTHON_ADD_MODULE_PYX(scheme_wrapper
+		"PyScheme.h" "atomspace.pxd" opencog_atom_types
+		"../load-file.h")
 
-	IF (HAVE_GUILE)
-		############################## scheme wrapper #####################
-		CYTHON_ADD_MODULE_PYX(scheme_wrapper
-			"PyScheme.h" "atomspace.pxd" opencog_atom_types
-			"../load-file.h")
+	list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "scheme_wrapper.cpp")
 
-		list(APPEND ADDITIONAL_MAKE_CLEAN_FILES "scheme_wrapper.cpp")
-
-		ADD_LIBRARY(scheme_wrapper SHARED
-			PyScheme
-			scheme_wrapper.cpp
-		)
-
-		TARGET_LINK_LIBRARIES(scheme_wrapper
-			atomspace_cython
-			query
-			execution
-			smob
-			${PYTHON${PY_VERSION}_LIBRARIES}
-		)
-
-		SET_TARGET_PROPERTIES(scheme_wrapper PROPERTIES
-			PREFIX ""
-			OUTPUT_NAME scheme_wrapper
-		)
-
-		INSTALL (TARGETS
-			scheme_wrapper
-			DESTINATION ${PYTHON${PY_VERSION}_SITE_PACKAGES}/opencog)
-	ENDIF (HAVE_GUILE)
-
-
+	ADD_LIBRARY(scheme_wrapper
+		PyScheme
+		scheme_wrapper.cpp
 	INSTALL (FILES
 		__init__.py
 		DESTINATION ${PYTHON${PY_VERSION}_SITE_PACKAGES}/opencog)

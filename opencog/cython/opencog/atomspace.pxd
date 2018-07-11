@@ -1,6 +1,7 @@
 from libcpp.vector cimport vector
 from libcpp.list cimport list as cpplist
-
+from libcpp.memory cimport shared_ptr
+from libcpp.string cimport string
 
 cdef extern from "Python.h":
     # Tacky hack to pass atomspace pointer to AtomSpace ctor.
@@ -18,15 +19,6 @@ cdef extern from "opencog/cython/opencog/Cast.h":
     # Tacky hack to convert C objects into Python objects.
     cdef PANDLE   void_from_candle(const cHandle& h)
     cdef PANDLE   void_from_cptr(cHandle* hp)
-
-
-# Basic wrapping for std::string conversion.
-cdef extern from "<string>" namespace "std":
-    cdef cppclass string:
-        string()
-        string(char *)
-        char * c_str()
-        int size()
 
 
 # Basic wrapping for back_insert_iterator conversion.
@@ -90,6 +82,24 @@ cdef extern from "opencog/atoms/proto/NameServer.h" namespace "opencog":
 cdef extern from "opencog/atoms/proto/atom_types.h" namespace "opencog":
     cdef Type NOTYPE
 
+cdef extern from "opencog/atoms/proto/ProtoAtom.h" namespace "opencog":
+    cdef cppclass cProtoAtom "opencog::ProtoAtom":
+        Type get_type()
+        bint is_atom()
+        bint is_node()
+        bint is_link()
+        
+        string to_string()
+        string to_short_string()
+        bint operator==(const cProtoAtom&)
+        bint operator!=(const cProtoAtom&)
+    
+    ctypedef shared_ptr[cProtoAtom] cProtoAtomPtr "opencog::ProtoAtomPtr"
+
+cdef class ProtoAtom:
+    cdef cProtoAtomPtr shared_ptr
+
+cdef ProtoAtom createProtoAtom(cProtoAtomPtr shared_ptr)
 
 # Atom
 ctypedef public short av_type
@@ -98,20 +108,15 @@ cdef extern from "opencog/atoms/base/Link.h" namespace "opencog":
     pass
 
 cdef extern from "opencog/atoms/base/Atom.h" namespace "opencog":
-    cdef cppclass cAtom "opencog::Atom":
+    cdef cppclass cAtom "opencog::Atom" (cProtoAtom):
         cAtom()
-
-        Type get_type()
-        int is_node()
-        int is_link()
-
-        string to_string()
-        string to_short_string()
 
         output_iterator getIncomingSet(output_iterator)
 
         tv_ptr getTruthValue()
         void setTruthValue(tv_ptr tvp)
+        void setValue(const cHandle& key, const cProtoAtomPtr& value)
+        cProtoAtomPtr getValue(const cHandle& key) const
 
         output_iterator getIncomingSetByType(output_iterator, Type type)
 
@@ -122,7 +127,9 @@ cdef extern from "opencog/atoms/base/Atom.h" namespace "opencog":
 
 # Handle
 cdef extern from "opencog/atoms/base/Handle.h" namespace "opencog":
-    cdef cppclass cHandle "opencog::Handle":
+    ctypedef shared_ptr[cAtom] cAtomPtr "opencog::AtomPtr"
+    
+    cdef cppclass cHandle "opencog::Handle" (cAtomPtr):
         cHandle()
         cHandle(const cHandle&)
 
@@ -222,3 +229,21 @@ cdef extern from "opencog/atomutils/AtomUtils.h" namespace "opencog":
     #
     cdef vector[cHandle] c_get_predicates "get_predicates" (cHandle& target, Type t, bint subclass)
     cdef vector[cHandle] c_get_predicates_for "get_predicates_for" (cHandle& target, cHandle& predicate)
+
+cdef extern from "opencog/atoms/proto/FloatValue.h" namespace "opencog":
+    cdef cppclass cFloatValue "opencog::FloatValue":
+        const vector[double]& value() const;
+    
+    cdef cProtoAtomPtr createFloatValue(...)
+
+cdef extern from "opencog/atoms/proto/StringValue.h" namespace "opencog":
+    cdef cppclass cStringValue "opencog::StringValue":
+        const vector[string]& value() const;
+    
+    cdef cProtoAtomPtr createStringValue(...)
+
+cdef extern from "opencog/atoms/proto/LinkValue.h" namespace "opencog":
+    cdef cppclass cLinkValue "opencog::LinkValue":
+        const vector[cProtoAtomPtr]& value() const;
+
+    cdef cProtoAtomPtr createLinkValue(...)

@@ -540,7 +540,12 @@ bool PatternMatchEngine::unorder_compare(const PatternTermPtr& ptm,
 
 		if (has_glob)
 		{
+			// Each glob comparision steps the glob state forwards.
+			// Each different permutation has to start with the
+			// same glob state as before. So save and restore state.
+			std::map<GlobPair, GlobState> saved_glob_state = _glob_state;
 			match = glob_compare(mutation, osg);
+			_glob_state = saved_glob_state;
 		}
 		else
 		{
@@ -696,7 +701,7 @@ bool PatternMatchEngine::glob_compare(const PatternTermSeq& osp,
 	GlobGrd glob_grd;
 	GlobPosStack glob_pos_stack;
 
-	// Common things needed to be done when we backtrack.
+	// Common things that need to be done when backtracking.
 	bool backtracking = false;
 	bool cannot_backtrack_anymore = false;
 	auto backtrack = [&](bool is_glob)
@@ -729,8 +734,8 @@ bool PatternMatchEngine::glob_compare(const PatternTermSeq& osp,
 		}
 	};
 
-	// Common things needed to be done when we find a match
-	// for a glob.
+	// Common things that need to be done when a match
+	// is found for a glob.
 	auto record_match = [&](const PatternTermPtr& glob,
 	                        const HandleSeq& glob_seq)
 	{
@@ -789,9 +794,9 @@ bool PatternMatchEngine::glob_compare(const PatternTermSeq& osp,
 			PatternTermPtr glob(osp[ip]);
 
 			// A glob may appear more than once in the pattern,
-			// so check if it's the case, and more importantly.
-			// if we have already grounded it previously, make
-			// sure the grounding satisfies the candidate here.
+			// so check if that's the case. If we have already
+			// grounded it previously, make sure the grounding
+			// here is consistent with the earlier grounding.
 			auto vg = var_grounding.find(ohp);
 			if (not backtracking and vg != var_grounding.end())
 			{
@@ -826,12 +831,14 @@ bool PatternMatchEngine::glob_compare(const PatternTermSeq& osp,
 			}
 			else
 			{
+				// XXX why are we not doing any checks to see if the
+				// grounding meets the variable constraints?
 				glob_pos_stack.push({glob, {ip, jg}});
 				_glob_state[gp] = {glob_grd, glob_pos_stack};
 			}
 
 			// First of all, see if we have seen this glob in
-			// previous iterations.
+			// previous iterations.  Huh ??? Why???
 			size_t last_grd = SIZE_MAX;
 			auto gi = glob_grd.find(glob);
 			if (gi != glob_grd.end())
@@ -872,7 +879,8 @@ bool PatternMatchEngine::glob_compare(const PatternTermSeq& osp,
 					continue;
 				}
 
-				// Just in case if the upper bound is zero...
+				// Just in case, if the upper bound is zero...
+				// XXX Huh ???
 				if (not _varlist->is_upper_bound(ohp, 1))
 				{
 					record_match(glob, glob_seq);
@@ -962,9 +970,10 @@ bool PatternMatchEngine::glob_compare(const PatternTermSeq& osp,
 				continue;
 			}
 
-			// Or if we are reaching the end of osp but there
-			// are two or more atoms to be matched in osg,
-			// try again.
+			// Try again if we reached the end of osp, but there
+			// are two or more atoms to be matched in osg (because
+			// maybe we can match one atom with the final atom of the
+			// pattern, but we certainly cannot match two or more.)
 			if (ip+1 == osp_size and jg+1 < osg_size)
 			{
 				backtrack(false);
@@ -1153,13 +1162,7 @@ bool PatternMatchEngine::explore_term_branches(const Handle& term,
 	// The given term may appear in the clause in more than one place.
 	// Each distinct location should be explored separately.
 	auto pl = _pat->connected_terms_map.find({term, clause_root});
-	if (_pat->connected_terms_map.end() == pl)
-	{
-		// XXX ???? Isn't this a hard-error ???
-		DO_LOG({LAZY_LOG_FINE << "Pattern term not found for " << term->to_short_string()
-		              << ", clause=" << clause_root->to_short_string();})
-		return false;
-	}
+	OC_ASSERT(_pat->connected_terms_map.end() != pl, "Internal error");
 
 	for (const PatternTermPtr &ptm : pl->second)
 	{
@@ -1219,11 +1222,16 @@ bool PatternMatchEngine::explore_up_branches(const PatternTermPtr& ptm,
 		// their state will be recorded in _glob_state, so that one can,
 		// if needed, resume and try to ground those globs again in a
 		// different way (e.g. backtracking from another branchpoint).
-		// If there is no more possible ways to ground them, they
+		// If there are no more possible ways to ground them, they
 		// will be removed from glob_state. So simply by comparing the
 		// _glob_state size before and after seems to be an OK way to
 		// quickly check if we can move on to the next one or not.
-		if (has_glob) gstate_size = _glob_state.size();
+		std::map<GlobPair, GlobState> saved_glob_state;
+		if (has_glob)
+		{
+			saved_glob_state = _glob_state;
+			gstate_size = _glob_state.size();
+		}
 
 		found = explore_link_branches(ptm, Handle(iset[i]), clause_root);
 
@@ -1233,6 +1241,10 @@ bool PatternMatchEngine::explore_up_branches(const PatternTermPtr& ptm,
 		{
 			found = explore_link_branches(ptm, Handle(iset[i]), clause_root);
 		}
+
+		// Restore the saved state, for the next go-around.
+		if (has_glob)
+			_glob_state = saved_glob_state;
 
 		if (found) break;
 	}
@@ -1600,13 +1612,6 @@ bool PatternMatchEngine::do_next_clause(void)
 		found = _pmc.grounding(var_grounding, clause_grounding);
 		DO_LOG(logger().fine("==================== FINITO! accepted=%d", found);)
 		DO_LOG(log_solution(var_grounding, clause_grounding);)
-
-		// Since the PM may move on and try to search for more solutions,
-		// clear the _glob_state here to prevent it from comparing the
-		// exact same term to the exact same candidate again.
-		// Otherwise, all possible ways to ground the globs in the term
-		// will be explored before moving to the next candidate.
-		_glob_state.clear();
 	}
 	else
 	{
@@ -2110,15 +2115,18 @@ void PatternMatchEngine::clear_current_state(void)
 
 	depth = 0;
 
-	// choice link state
+	// ChoiceLink state
 	_choice_state.clear();
 	_need_choice_push = false;
 	choose_next = true;
 
-	// unordered link state
+	// UnorderedLink state
 	have_more = false;
 	take_step = true;
 	_perm_state.clear();
+
+	// GlobNode state
+	_glob_state.clear();
 
 	issued.clear();
 }
@@ -2142,8 +2150,9 @@ bool PatternMatchEngine::explore_constant_evaluatables(const HandleSeq& clauses)
 PatternMatchEngine::PatternMatchEngine(PatternMatchCallback& pmcb)
 	: _pmc(pmcb),
 	_nameserver(nameserver()),
-	_varlist(NULL),
-	_pat(NULL)
+	_varlist(nullptr),
+	_pat(nullptr),
+	clause_accepted(false)
 {
 	// current state
 	depth = 0;

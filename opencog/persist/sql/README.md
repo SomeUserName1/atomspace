@@ -8,15 +8,26 @@ SQL Persist
 
 An implementation of atom persistence in SQL.  This allows not only
 saving and restoring of the atomspace, but it also allows multiple
-cogservers to share a common set of data.  That is, it implements a
-basic form of a distributed atomspace.
+atomspaces to connect to the same SQL database at the same time, and
+so share a common set of data.  That is, it implements a basic form of
+a distributed atomspace.
 
 Status
 ======
-It works and has been used with databases containing millions of atoms,
-accessed by cogservers that ran for months to perform computations. It
-has scaled, trouble-free, without any slowdown, up to four cogservers.
-No one has tried anything larger than that, yet.
+It works and has been used with databases containing up to 100 million
+atoms (at about 1.5KByte/atom, this requires 150GBytes RAM). It has been
+accessed by atomspace processes (cogservers) that ran for months to
+perform computations, modifying more than 100's of millions of atoms,
+without crashes or other overt trouble.  It has scaled, trouble-free,
+without any slowdown, up to four cogservers.  No one has tried anything
+larger than that, yet.
+
+Unfortunately, its slow: typical save and restore speeds are in the
+general ballpark of 1K Atoms/sec. This can be speeded up almost ten-fold,
+by disabling various safety checks (such as sync-to-disk) in Postgres.
+This works great, unless you loose power, in which case your database
+will be permanently corrupted. Power loss happens more often than you
+might imagine.
 
 Features
 --------
@@ -30,7 +41,6 @@ Missing features/ToDo items
  * Provide optimized table layout for EvaluationLinks.
  * Provide optimized layout for sheaf sections.
  * Add support for multiple atom spaces.
- * Add support for Space/TimeServer data.
  * See also TODO list at very bottom.
 
 Performance status
@@ -55,6 +65,25 @@ the Postgres server for better results.  The above was also done through
 the scheme interface; since then, garbage collection has been tuned a
 little bit, and so RAM usage should drop a bit.
 
+In June 2018, it took 3500 seconds wall-clock time to load 25924129
+atoms, for a rate of 7407 atoms/sec. Of these atoms, approximately half
+had non-trivial values associated with them. The cogserver process used
+38GB of RAM, for about 1.46KBytes/atom.
+
+Storing portions of this dataset proceeds at about 1K atoms/sec. This
+is for updating the values on the atoms, only; no actual atoms are
+stored (i.e. the atoms are already in the database; as are the values;
+the values are being updated).  Precisely, there were 6239904 stores
+in 6561 seconds, wall-clock time, for a rate of 951 Atoms/second.
+
+Store is performed by multiple parallel threads in the backend, each
+taking to a distinct instance of postgres; thus, it appears that
+postgres is the primary bottleneck. Certainly, postgres seems to be the
+primary consumer of CPU time, using a combined 2x more CPU than the
+atomspace. i.e. for every cpu-sec burned by the atomspace, the six
+different postgres instance burn up two cpu-secs.
+
+It is not at all obvious how to improve either load or store performance.
 
 Design Goals
 ============
@@ -148,18 +177,17 @@ tested in several unit tests.
  * Fully automated mapping of in-RAM atoms to in-storage universal
 unique identifiers (UUID's), using the TLB mechanism.
 
- * Multi-user issuance and management of UUID's is un-tested and is
-probably broken at this time.  That is, if multiple cogservers connect
-to the atomspace at the same time, it probably won't work.  It used to
-work, but there have been some major changes that probably broke this.
-There is existing infrastructure that enables this, e.g. one can
-"malloc" ranges of UUID's.  The code has bit-rotted, for lack of use.
+ * Multi-user issuance and management of UUID's is weakly tested and
+seems to work. This allows a form of a "distributed atomspace" --
+multiple atomsapces can connect to the same database at the same time,
+and save and restore atoms, getting back the correct Values (such as
+TruthValues) on each atom, as expected.
 
  * This implementation automatically handles clashing atom types.  That
 is, if the data is written with one set of atom types, and then the
-cogserver is stopped, the atomtypes are all changed (with some added,
-some deleted), then during the load of the old data, the types will
-be automatically translated to use the new atom types. (The deleted
+atomspace process is stopped, the atomtypes are all changed (with some
+added, some deleted), then during the load of the old data, the types
+will be automatically translated to use the new atom types. (The deleted
 atom types will not be removed from the database.  Restoring atoms with
 deleted atomtypes will cause an exception to be thrown.)
 
@@ -1036,19 +1064,6 @@ Much much better!
 ```
 
 
-ProtoAtoms
-==========
-ProtoAtoms were invented to solve the representational issues associated
-with TV's. Narrowly, there is a need to store TV's of different kinds,
-including TV's with counts, relative entropies, value ranges, etc.
-Broadly, there is a need to store generic entity-attribute-value
-information with each atom (where the atom is the entity).  ProtoAtoms
-are the intended EAV solution for the atomspace.
-
-The ProtoAtom implementation, in the main atomspace, is incomplete.
-Much of the work has been done, but open design issues remain.
-
-
 JSONB
 =====
 The storage problem for the atomspace is essentially the problem of
@@ -1059,8 +1074,7 @@ https://en.wikipedia.org/wiki/Entity%E2%80%93attribute%E2%80%93value_model
 A workable design point, using postgres 9.4 or newer, is JSONB. See
 http://coussej.github.io/2016/01/14/Replacing-EAV-with-JSONB-in-PostgreSQL/
 
-The goal here is to deal with protoatom storage (i.e. as a replacement
-for the current TV representation problem.)
+The goal here is to deal with how to store Values (ProtoAtoms).
 
 The representation of the atomspace would then look vaguely like this
 (this is a rough sketch):
@@ -1095,13 +1109,13 @@ UPDATE atomspace
 SET atom = jsonb_set(properties, '{"stv"}', '[0.2, 0.54]')
 WHERE id = 42;
 
+
 Critically important observations:
 ----------------------------------
 Performance depends crucially on the use of the containment (@>)
 operator in the WHERE clause. This causes the GIN index to be used,
 and thus can run thousands (!) of times faster than an ordinary
 EAV table structure.
-
 
 
 TODO
@@ -1117,10 +1131,19 @@ TODO
    or not.  Technically, this caching can be done in the atomspace, I
    guess... See https://github.com/opencog/atomspace/issues/1373
 
- * Implement the large-outgoing-set extension. A version of this can be
-   found in the `postgres-dead` directory, but the code there is badly
-   broken. Its probably simplest to just ignore the code in
-   `postgres-dead`, and design something from scratch.
+ * Implement the large-outgoing-set extension. One way of doing this
+   is touched in in https://github.com/opencog/atomspace/issues/1763
+   The idea is this: Create a new link-type `ConsLink` or `ExtendLink`.
+   A link with more than 330 atoms in the outgoing set would be split
+   into several parts: the original link, with less than 330 atoms,
+   the last atom of which would be the `ExtendLink`, which holds the
+   next 330, etc. until they are all specified. This can be done with
+   ZERO changes to the SQL table format.  Its really pretty easy to
+   implement: just look at the length during save and restore, and
+   trigger disassemble/reassembly code when the lenght limits are hit.
+   Note also: the new link-type should be used in the SQL backend only,
+   and thus, it would not be a real link-type, but a pseudo-type, a
+   marker used only in the SQL tables.
 
  * Consider an alternate implementation, using JSONB to do an EAV-like
    storage: For details, see
@@ -1130,7 +1153,7 @@ TODO
    hierarchy, so that types can be fully saved and restored from the
    database. Not clear how to resolve conflicts, if they occur, between
    the type inheritance hierarchy defined in C++, and the hierarchy
-   defined in the database.
+   defined in the database.  So maybe this is a *bad idea*.
 
  * Extend the standard table to hold count truth-values. Since almost
    all atoms have count TV's on them, this can lead to a more compact

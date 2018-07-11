@@ -122,6 +122,9 @@ private:
 	static SCM ss_arity(SCM);
 	static SCM ss_as(SCM);
 	static SCM ss_tv(SCM);
+	static SCM ss_get_mean(SCM);
+	static SCM ss_get_confidence(SCM);
+	static SCM ss_get_count(SCM);
 	static SCM ss_keys(SCM);
 	static SCM ss_value(SCM, SCM);
 	static SCM ss_incoming_set(SCM);
@@ -206,7 +209,8 @@ private:
 	static std::set<Logger*> deleteable_lgr;
 	
 	// validate arguments coming from scheme passing into C++
-	static void throw_exception(const std::exception&, const char *, SCM);
+	[[ noreturn ]] static void throw_exception(const std::exception&,
+	                                           const char *, SCM);
 	static AtomSpace* verify_atomspace(SCM, const char *, int pos = 1);
 	static Type verify_atom_type(SCM, const char *, int pos = 1);
 	static Handle verify_handle(SCM, const char *, int pos = 1);

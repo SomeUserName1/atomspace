@@ -10,11 +10,23 @@
 ; The object here assumes that a pair-counting batch job has completed.
 ; That is, it assumes that there are cached values available for the
 ; individual pair frequencies, the wild-card frequencies, and the
-; inddividual pair MI values.
+; individual pair MI values.
 ;
 ; It uses these cached stats for frequencies and MI to compute left
 ; and right subtotals (row and column subtotals), which are then cached.
 ; The cached values become available via the standard frequency API.
+;
+; XXX FIXME: This should be re-written to avoid the frequency API, and
+; make use only of the counts during computation. There are two reasons
+; for this:
+; 1) It takes time to compute the frequencies, and it takes storage to
+;    store them. This is a waste for large datasets; and poses problems
+;    when the datasets are extremely large.
+; 2) The count api can be filtered in a straight-forward way, with the
+;    filtering API. But these filtered counts are not used below, and
+;    there's no way to use that, without recomputing the frequencies.
+;    So .. see point 1) above: frequencies are screwy when filtering.
+;
 ; ---------------------------------------------------------------------
 ;
 (use-modules (srfi srfi-1))
@@ -48,7 +60,7 @@
   'cache-left-mi        -- compute and cache the column mi
   'cache-right-mi       -- compute and cache the row mi
 
-  The cahced values are accessible via the standard frequency API.
+  The cached values are accessible via the standard frequency API.
 "
 	; Need the 'left-stars method, provided by add-pair-stars
 	; Need the 'left-wild-freq method, provided by add-pair-freq-api
@@ -179,7 +191,7 @@
 
   The object must have valid partial sums for the entropy and MI on it,
   viz, the ones computed by add-subtotal-mi-compute, above. These are
-  acessed via the standard frequency-object API. These must have been
+  accessed via the standard frequency-object API. These must have been
   pre-computed, before this object can be used.
 
   These methods loop over all rows and columns to compute the total sums.

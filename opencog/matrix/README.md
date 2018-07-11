@@ -10,6 +10,22 @@ and effects, or pair-wise relationships of any sort. A recurring
 problem is to obtain statistics for these pairs, and to manipulate
 them in various ways.
 
+A common theme in machine learning are "vectors of data": a vector
+of numbers can be associated to some object, and one is interested in
+classifying these vectors in some way; e.g. by using Principal Component
+Analysis (PCA), Singular Value Decomposition (SVD), K-means clustering,
+and so on. Vectors are buried in essentially all neural-net type
+algorithms.  But - this is key: a collection of vectors can be viewed
+as a matrix. Entries in the matrix are (row, column) pairs.
+
+The code in this directory exposes portions of the atomspace as pairs,
+or as a matrix, or as a collection of vectors, depending on how you want
+to think about it.  It implements the low-level code for this access,
+so that high-level algorithms can be implemented on top of it: so that
+they can grab that data, do things with it, and write it back.  It
+provides a "window" onto a portion of the atomspace, and everything
+seen through that "window" looks like vectors, like one big matrix.
+
 That is, the structure of interest are ordered pairs `(x,y)` of atoms
 (that is, where `x` and `y` are atoms), along with any values attached
 to such pairs. The primary value of interest is an observation count
@@ -43,9 +59,10 @@ that. Once you realize that your data can be seen as a kind of matrix,
 you can then apply a variety of generic matrix analysis tools to it.
 
 Another way to arrive at this idea is to view your data as a graph,
-and then realize that any graph can be described in terms of it's
-adjacency matrix. This directory provides tools to work with a graph
-from the point of view of its being an adjacency matrix.
+(of vertexes connected with edges) and then realize that any graph can
+be described in terms of it's adjacency matrix. This directory provides
+tools to work with a graph from the point of view of its being an
+adjacency matrix.
 
 The tools implemented here include:
 
@@ -139,7 +156,7 @@ A: Yes. As currently structured, all of these classes assume that your
    your dataset is too big to fit into RAM.  At the time of this
    writing, a single atom takes about 1.5KBytes or so, so a dataset
    consisting of 100M atoms will require about 150GBytes of RAM, plus
-   a bit more for other processes (e.g. postgres). Since most computers
+   a bit more for other processes (e.g. Postgres). Since most computers
    max out at about 256 GBytes RAM, this limits datasets to 100M atoms.
    Some language datasets can be considerably larger than this.
    The largest Amazon EC2 instances are 256 GBytes.
@@ -191,7 +208,7 @@ Basic definitions
 
 Let `N(x,y)` be the observed count on the pair of atoms `(x,y)`.
 
-The `add-pair-count-api` class provides an API to report the partial
+The `add-support-api` class provides an API to report the partial
 sums `N(x,*) = sum_y N(x,y)` and likewise `N(*,y)`.  If you think of
 `N(x,y)` as a matrix, these are the totals for the entries in each
 row or column of the matrix. Likewise, `N(*,*) = sum_x sum_y N(x,y)`.
@@ -231,10 +248,14 @@ methods:  `for-each-pair`, which simply calls the function for each
 pair, and a `map-pair` method which returns a list of the results of
 calling the function on each pair.
 
-The `make-compute-count` class provides methods to compute the partial
-sums `N(*,y)` and `N(x,*)` and cache the resulting values on atoms where
-they can be quickly retrieved. The location of the cached values are
-exactly where they can be found by the `add-pair-count-api`, above.
+The `add-support-compute` class provides methods to compute the
+partial sums `N(*,y)` and `N(x,*)`. It also provides methods that
+compute how many non-zero entries there are in each row or column.
+It also provides methods for the "length" of a column: that is,
+`len(y) = sqrt(sum_x N^2 (x,y))` and more generally the l_p norm.
+Because these computations can take a considerable amount of time,
+the partial sums (the "marginals") are cached. The cached values can
+be accessed with the `add-support-api` object.
 
 The `make-compute-freq` class provides methods to compute and cache
 the frequencies `p(x,y)`, `p(*,y)` and `p(x,*)`.  These are cached
@@ -254,14 +275,8 @@ e.g. tens of millions of atoms, this can take hours to run.  Thus, for
 this reason, the cached values are then saved to the currently-open
 database, so that these results become available later.
 
-Computing support and entropy
------------------------------
-The `add-support-compute` class provides methods to compute the
-partial sums `N(*,y)` and `N(x,*)`. It also provides methods that
-compute how many non-zero entries there are in each row or column.
-It provides methods for the "length" of a column: that is,
-`len(y) = sqrt(sum_x N^2 (x,y))` and more generally the l_p norm.
-
+Computing entropy
+-----------------
 The `add-pair-mi-compute` class provides methods to compute the entropy
 and mutual information of rows and columns: for example, the column
 entropy (or `left-entropy`) `h_left(y) = -sum_x P(x,y) log_2 P(x,y)`
@@ -348,7 +363,16 @@ tools in the (opencog network) module.
 TODO
 ----
 To-do list items.
- * The "api" objects need to be redesigned. They fetch stuff out of
-   the atomspace, which can only work if no filtering is applied. But
-   if there are pre-filters, then the returned values are necessarily
-   garbage. Yucko.  Can we fail-safe this for now?
+ * The "star" objects need to be redesigned. They fetch wild-card counts
+   etc. straight out of the atomspace, which can only work if no filtering
+   is applied. But if there are pre-filters, then the returned values are
+   necessarily garbage. Yucko.  Can we fail-safe this for now?
+
+ * Need to support columns/rows that can be one of several types
+   (e.g. can be WordNodes, or be WordClassNodes)
+
+ * Need to provide better support for complex structures (viz. cases
+   where left and right are not immediately underneath a common link).
+   Currently all pairs are necessarily of the form
+     (pair-type (left-type right-type))
+   and we need more complex variations than that.

@@ -81,7 +81,7 @@ std::string	BITNode::to_string(const std::string& indent) const
 // AndBIT //
 ////////////
 
-AndBIT::AndBIT() : exhausted(false) {}
+AndBIT::AndBIT() : complexity(0), exhausted(false), queried_as(nullptr) {}
 
 AndBIT::AndBIT(AtomSpace& bit_as, const Handle& target, Handle vardecl,
                const BITNodeFitness& fitness, const AtomSpace* qas)
@@ -324,9 +324,12 @@ Handle AndBIT::expand_fcs(const Handle& leaf,
 	Handle nrewrite = expand_fcs_rewrite(nfcs_rewrite, rule.first);
 
 	// Generate new vardecl
-    // TODO: is this merging necessary?
+	// TODO: is this merging necessary?
 	Handle merged_vardecl = merge_vardecl(nfcs_vardecl, rule_vardecl);
 	Handle nvardecl = filter_vardecl(merged_vardecl, {npattern, nrewrite});
+
+	// Remove constant clauses from npattern
+	npattern = Unify::remove_constant_clauses(nvardecl, npattern, queried_as);
 
 	// Generate new atomese forward chaining s trategy
 	HandleSeq noutgoings({npattern, nrewrite});
@@ -752,18 +755,10 @@ std::string oc_to_string(const BITNode& bitnode, const std::string& indent)
 {
 	return bitnode.to_string(indent);
 }
-std::string oc_to_string(const BITNode& bitnode)
-{
-	return oc_to_string(bitnode, "");
-}
 
 std::string oc_to_string(const AndBIT& andbit, const std::string& indent)
 {
 	return andbit.to_string(indent);
-}
-std::string oc_to_string(const AndBIT& andbit)
-{
-	return oc_to_string(andbit, "");
 }
 
 // std::string oc_to_string(const BIT& bit)

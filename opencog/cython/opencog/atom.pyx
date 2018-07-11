@@ -1,4 +1,11 @@
 
+cdef cAtom* get_atom_ptr(Atom atom):
+    cdef cAtom* atom_ptr = atom.handle.atom_ptr()
+    if atom_ptr == NULL:
+        raise AttributeError('Atom contains NULL reference')
+    return atom_ptr
+
+
 # Atom wrapper object
 cdef class Atom(object):
 
@@ -158,6 +165,18 @@ cdef class Atom(object):
             return
         attentionbank(self.atomspace.atomspace).dec_vlti(self.handle[0])
 
+    def set_value(self, key, value):
+        get_atom_ptr(self).setValue(deref((<Atom>key).handle),
+                                (<ProtoAtom>value).shared_ptr)
+        
+    def get_value(self, key):
+        cdef cProtoAtomPtr value = get_atom_ptr(self).getValue(
+            deref((<Atom>key).handle))
+        if (value != NULL):
+            return createProtoAtom(value)
+        else:
+            return None
+
     def get_out(self):
         cdef cAtom* atom_ptr = self.handle.atom_ptr()
         if atom_ptr == NULL:   # avoid null-pointer deref
@@ -272,7 +291,7 @@ cdef class Atom(object):
     def long_string(self):
         cdef cAtom* atom_ptr = self.handle.atom_ptr()
         if atom_ptr != NULL:
-            return atom_ptr.to_string()
+            return atom_ptr.to_string().decode('UTF-8')
         return ""
 
     def __str__(self):
@@ -283,8 +302,7 @@ cdef class Atom(object):
         return ""
 
     def __repr__(self):
-        cs = self.long_string()
-        return string(cs).decode('UTF-8')
+        return self.long_string()
 
     def __richcmp__(a1_, a2_, int op):
         if not isinstance(a1_, Atom) or not isinstance(a2_, Atom):

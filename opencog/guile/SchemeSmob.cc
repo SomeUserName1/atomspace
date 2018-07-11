@@ -263,9 +263,10 @@ void SchemeSmob::module_init(void*)
 	scm_c_eval_string("(add-to-load-path \"" PROJECT_BINARY_DIR "\")");
 #endif
 
-	scm_primitive_load_path(scm_from_utf8_string("opencog/atoms/proto/core_types.scm"));
+	scm_primitive_load_path(scm_from_utf8_string("opencog/base/core_types.scm"));
 	scm_primitive_load_path(scm_from_utf8_string("opencog/base/core-docs.scm"));
 	scm_primitive_load_path(scm_from_utf8_string("opencog/base/utilities.scm"));
+	scm_primitive_load_path(scm_from_utf8_string("opencog/base/atom-cache.scm"));
 	scm_primitive_load_path(scm_from_utf8_string("opencog/base/apply.scm"));
 	scm_primitive_load_path(scm_from_utf8_string("opencog/base/tv.scm"));
 	scm_primitive_load_path(scm_from_utf8_string("opencog/base/file-utils.scm"));
@@ -323,6 +324,9 @@ void SchemeSmob::register_procs()
 	register_proc("cog-value",             2, 0, 0, C(ss_value));
 	register_proc("cog-tv",                1, 0, 0, C(ss_tv));
 	register_proc("cog-as",                1, 0, 0, C(ss_as));
+	register_proc("cog-mean",              1, 0, 0, C(ss_get_mean));
+	register_proc("cog-confidence",        1, 0, 0, C(ss_get_confidence));
+	register_proc("cog-count",             1, 0, 0, C(ss_get_count));
 
 	// Truth-values
 	register_proc("cog-new-stv",           2, 0, 0, C(ss_new_stv));

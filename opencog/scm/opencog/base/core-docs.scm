@@ -479,6 +479,28 @@
      (cog-inc-count! (ConceptNode \"Answer\") 42.0)
 ")
 
+(set-procedure-property! cog-mean 'documentation
+"
+ cog-mean ATOM
+    Return the `mean` of the TruthValue on ATOM. This is a single
+    floating point-number.
+")
+
+(set-procedure-property! cog-confidence 'documentation
+"
+ cog-confidence ATOM
+    Return the `confidence` of the TruthValue on ATOM. This is a single
+    floating point-number.
+")
+
+(set-procedure-property! cog-count 'documentation
+"
+ cog-count ATOM
+    Return the `count` of the TruthValue on ATOM. This is a single
+    floating point-number.
+")
+
+; ===================================================================
 (set-procedure-property! cog-new-stv 'documentation
 "
  cog-new-stv MEAN CONFIDENCE
@@ -654,6 +676,29 @@
        ((mean . 0.7) (confidence . 0.9))
 ")
 
+(set-procedure-property! cog-tv-mean 'documentation
+"
+ cog-tv-mean TV
+    Return the `mean` of the TruthValue TV. This is a single
+    floating point-number.
+")
+
+(set-procedure-property! cog-tv-confidence 'documentation
+"
+ cog-tv-confidence TV
+    Return the `confidence` of the TruthValue TV. This is a single
+    floating point-number.
+")
+
+(set-procedure-property! cog-tv-count 'documentation
+"
+ cog-tv-count TV
+    Return the `count` of the TruthValue TV. This is a single
+    floating point-number.
+")
+
+; ===================================================================
+;
 (set-procedure-property! cog-new-av 'documentation
 "
  cog-new-av STI LTI VLTI
@@ -909,6 +954,8 @@
        ; define a function that prints the atoms:
        guile> (define (prt-atom h) (display h) #f)
        guile> (cog-map-type prt-atom 'ConceptNode)
+
+  See also: cog-get-atoms TYPE - returns a list of atoms of TYPE.
 ")
 
 (set-procedure-property! cog-atomspace 'documentation

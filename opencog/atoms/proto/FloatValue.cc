@@ -27,7 +27,6 @@ using namespace opencog;
 
 bool FloatValue::operator==(const ProtoAtom& other) const
 {
-	if (nullptr == &other) return false;
 	if (FLOAT_VALUE != other.get_type()) return false;
 
    const FloatValue* fov = (const FloatValue*) &other;
@@ -40,7 +39,7 @@ bool FloatValue::operator==(const ProtoAtom& other) const
 		// http://www.cygnus-software.com/papers/comparingfloats/Comparing%20floating%20point%20numbers.htm
 		// if (1.0e-15 < fabs(1.0 - fov->_value[i]/_value[i])) return false;
 #define MAX_ULPS 24
-		if (MAX_ULPS < abs(*(int64_t*) &(_value[i]) - *(int64_t*)&(fov->_value[i])))
+		if (MAX_ULPS < llabs(*(int64_t*) &(_value[i]) - *(int64_t*)&(fov->_value[i])))
 			return false;
 	return true;
 }
