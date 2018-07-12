@@ -1,3 +1,9 @@
+## Git Repo
+### Git Submodules
+OpenCog <-- Atomspace + Cog"Util"
+Agents <-- Core 
+
+
 ## CMake Generation & handling
 ### Override CMake project compiler settings and set the binutils prefix to llvm
 __Sources:__
@@ -136,3 +142,9 @@ __Sources:__
 __Sources:__
 - [Webpage](http://openmp.llvm.org/)
 - [Standard](https://www.openmp.org/wp-content/uploads/OpenMP3.1.pdf)
+
+### GPGPU/OpenACC
+__Sources:__
+- [Medusa src](https://github.com/JianlongZhong/Medusa)
+- [GRute src](https://github.com/groute/groute)
+- [OpenACC 2 LLVM IR Paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=7550823)
