@@ -55,7 +55,7 @@ Example code using opencog.
 \section sect_lib lib directory
 A number of cmake support files and other components (better name, anyone?).
 
-\section sect_opencog opencog directory
+\section sect_opencog source directory
 Main source directory.
 <DL>
 
@@ -112,6 +112,9 @@ This repository contains assorted routines,
 written in scheme, for manipulating
 OpenCog atoms and systems, in various general ways
 </DD>
+
+<DT>util</DT>
+<DD>Various code, relevant to the entire project. See \ref libcogutil "it's page"</DD>
 
 </DL>
 
