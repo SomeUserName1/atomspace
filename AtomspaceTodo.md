@@ -21,11 +21,16 @@ __Sources:__
 - [CMake Manual](https://cmake.org/cmake/help/v3.0/module/CMakeGraphVizOptions.html)
 
 CMakeLists.txt:
-```add_custom_target(graphviz ALL
+```
+add_custom_target(graphviz ALL
                   "${CMAKE_COMMAND}" "--graphviz=foo" .
-                  WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")```
+                  WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+```
+                  
 CLI:
-```-graphviz=basename```
+```
+-graphviz=basename
+```
 
 
 ### Generate Compile Symbol database for Language Servers/LSP
@@ -33,7 +38,9 @@ __Sources:__
 - [StackOverflow](https://stackoverflow.com/questions/20059670/how-to-use-cmake-export-compile-commands)
 - [CMake Manual](https://cmake.org/cmake/help/v3.5/variable/CMAKE_EXPORT_COMPILE_COMMANDS.html)
 
-```-DCMAKE_EXPORT_COMPILE_COMMANDS=1```
+```
+-DCMAKE_EXPORT_COMPILE_COMMANDS=1
+```
 
 
 ### CMake & PyPi Packages_
@@ -42,11 +49,14 @@ __Sources:__
 - [setuptools docs](https://setuptools.readthedocs.io/en/latest/setuptools.html#developer-s-guide)
 
 Prequisites:
-``` setuptools wheel twine```
+```
+setuptools wheel twine
+```
 
 1. check directory structure
 2. write a propper setup.py
-```from setuptools import setup, find_packages
+```
+from setuptools import setup, find_packages
 setup(
     name="HelloWorld",
     version="0.1",
@@ -78,12 +88,17 @@ setup(
     }
 
     # could also include long_description, download_url, classifiers, etc.
-)```
+)
+```
 3. Add License and README
 4. Generate distr archives
-```python3 setup.py sdist bdist_wheel```
+```
+python3 setup.py sdist bdist_wheel
+```
 5. Upload to PyPi
-``` twine upload --repository-url https://test.pypi.org/legacy/ dist/*```
+``` 
+twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+```
 
 
 ### Creating .deb package
