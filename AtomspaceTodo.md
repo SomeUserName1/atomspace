@@ -134,6 +134,8 @@ __Sources:__
 - [compiler-rt webpage](http://compiler-rt.llvm.org/)
 
 ## Optimization
+### BOLT: call analysis
+- [BOLT](https://github.com/facebookincubator/BOLT)
 ### Polly: Cache locality and auto-parallelism 
 __Sources:__
 - [Webpage](http://polly.llvm.org/)
