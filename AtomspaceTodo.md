@@ -1,6 +1,6 @@
 ## Git Repo
 ### Git Submodules
-OpenCog <-- Atomspace + Cog"Util"
+OpenCog <-- Atomspace + Cog"Util"  
 Agents <-- Core 
 
 
