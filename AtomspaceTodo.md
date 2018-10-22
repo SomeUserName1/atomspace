@@ -1,10 +1,73 @@
 ## Git Repo
 ### Git Submodules
-OpenCog <-- Atomspace + Cog"Util"  
-Agents <-- Core 
+Split into Language definition + Compiler/Interpreter Stack using LLVM and Atomese as IR  
+and  
+Database so save those IRs for compiled programs, extracted features for images/sound, other static knowledge  
+
+# Compiler features  
+## Static Code Analysis of C++ in LLVM:  
+[Paper](https://pdfs.semanticscholar.org/55c8/a6fb28edea5640a3310d3c11b4f5d85c41c6.pdf)  
+[Default checkers](https://clang-analyzer.llvm.org/available_checks.html#default_checkers)  
+
+## Tutorials on clang code analyzer:
+[1](https://wiki.documentfoundation.org/Development/Clang_Code_Analysis)  
+[2](https://github.com/ingve/awesome-clang)  
+[LLVM Tooling setup](http://clang.llvm.org/docs/HowToSetupToolingForLLVM.html)  
+
+## Safety
+### Data Flow Analysis
+[Phasar](https://phasar.org/)  
+
+### Low Level Bounded Model Checker
+[Webpage KIT](http://llbmc.org/)
+
+### KLEE: High-coverage test generation (theorem prover to evaluate all possible
+paths)
+__Sources:__
+- [Webpage](http://klee.github.io/)
+- [GitHub](https://github.com/klee/klee/tree/master)
+- [Tutorial for coreutils](http://klee.github.io/tutorials/testing-coreutils/)
 
 
-## CMake Generation & handling
+### SAFECode: Static code analysis: array bounds checking, memory object
+validation, dangeling pointer detection
+__Sources:__
+- [Webpage](http://safecode.cs.illinois.edu/index.html)
+
+### LLVM/Clang Flags: Adress, Memory, Thread, Leak sanitizers & data flow analysis 
+__Sources:__
+- [compiler-rt webpage](http://compiler-rt.llvm.org/)
+e.g.
+'''
+ -Wthread-safety -fsanitize=address ASAN_OPTIONS=check_initialization_order=1  ASAN_OPTIONS=detect_leaks=1 -fsanitize=thread -fsanitize=memory fsanitize=undefined -fsanitize=cfi
+'''
+
+## Optimization
+### better linker:
+[LLD](http://lld.llvm.org/)
+### BOLT: call analysis
+- [BOLT](https://github.com/facebookincubator/BOLT)
+### Polly: Cache locality and auto-parallelism 
+__Sources:__
+- [Webpage](http://polly.llvm.org/)
+
+### OpenMP: Thread-Safe parallelization by compiler directives & OpenCL
+__Sources:__
+- [Webpage](http://openmp.llvm.org/)
+- [Standard](https://www.openmp.org/wp-content/uploads/OpenMP3.1.pdf)
+- [Webpage](http://libclc.llvm.org/)
+
+### GPGPU/OpenACC
+__Sources:__
+- [Medusa src](https://github.com/JianlongZhong/Medusa)
+- [GRute src](https://github.com/groute/groute)
+- [OpenACC 2 LLVM IR Paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=7550823)
+- [Auto-Vectorization](http://cuda.dcc.ufmg.br/dawn/)
+
+
+
+## CMake Generation & Deployment  
+#### Kubernets?  
 ### Override CMake project compiler settings and set the binutils prefix to llvm
 __Sources:__
 - [StackOverflow](https://stackoverflow.com/questions/7031126/switching-between-gcc-and-clang-llvm-using-cmake)
@@ -113,40 +176,3 @@ __Sources:__
 - [CMake extention](https://github.com/IvanSafonov/cmake-deb-packaging)
 - [CPack](https://gitlab.kitware.com/cmake/community/wikis/doc/cpack/Configuration)
 
-
-## Safety
-### KLEE: High-coverage test generation (theorem prover to evaluate all possible
-paths)
-__Sources:__
-- [Webpage](http://klee.github.io/)
-- [GitHub](https://github.com/klee/klee/tree/master)
-- [Tutorial for coreutils](http://klee.github.io/tutorials/testing-coreutils/)
-
-
-### SAFECode: Static code analysis: array bounds checking, memory object
-validation, dangeling pointer detection
-__Sources:__
-- [Webpage](http://safecode.cs.illinois.edu/index.html)
-
-### LLVM/Clang Flags: Adress, Memory, Thread, Leak sanitizers & data flow
-analysis 
-__Sources:__
-- [compiler-rt webpage](http://compiler-rt.llvm.org/)
-
-## Optimization
-### BOLT: call analysis
-- [BOLT](https://github.com/facebookincubator/BOLT)
-### Polly: Cache locality and auto-parallelism 
-__Sources:__
-- [Webpage](http://polly.llvm.org/)
-
-### OpenMP: Thread-Safe parallelization by compiler directives
-__Sources:__
-- [Webpage](http://openmp.llvm.org/)
-- [Standard](https://www.openmp.org/wp-content/uploads/OpenMP3.1.pdf)
-
-### GPGPU/OpenACC
-__Sources:__
-- [Medusa src](https://github.com/JianlongZhong/Medusa)
-- [GRute src](https://github.com/groute/groute)
-- [OpenACC 2 LLVM IR Paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=7550823)
